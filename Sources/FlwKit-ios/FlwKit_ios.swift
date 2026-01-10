@@ -1,2 +1,4 @@
-// The Swift Programming Language
-// https://docs.swift.org/swift-book
+// FlwKit iOS SDK
+// Main entry point - all public APIs are exported through FlwKit.swift
+
+@_exported import SwiftUI
