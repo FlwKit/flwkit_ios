@@ -6,7 +6,8 @@ public struct FlwKit {
     private static let apiClient = APIClient.shared
     private static let analytics = Analytics.shared
     
-    /// Configure FlwKit with your app credentials
+    /// Configure FlwKit with your app credentials.
+    /// Call this once during app initialization (in AppDelegate or @main App struct).
     /// - Parameters:
     ///   - appId: Your FlwKit app ID
     ///   - apiKey: Your FlwKit API key
@@ -27,7 +28,7 @@ public struct FlwKit {
     public static func present(
         flowKey: String,
         attributes: [String: Any] = [:],
-        onComplete: @escaping ([String: Any]) -> Void,
+        onComplete: @escaping ([String: Any]) -> Void = { _ in },
         onExit: (() -> Void)? = nil,
         completion: @escaping (Result<AnyView, Error>) -> Void
     ) {
@@ -55,6 +56,18 @@ public struct FlwKit {
 // MARK: - SwiftUI View
 
 /// SwiftUI view for presenting a FlwKit flow
+/// 
+/// Simplest usage:
+/// ```swift
+/// FlwKitFlowView("onboarding")
+/// ```
+/// 
+/// With completion handler:
+/// ```swift
+/// FlwKitFlowView("onboarding") { answers in
+///     print(answers)
+/// }
+/// ```
 public struct FlwKitFlowView: View {
     @State private var flow: Flow?
     @State private var isLoading: Bool = true
@@ -68,7 +81,21 @@ public struct FlwKitFlowView: View {
     private let apiClient = APIClient.shared
     private let analytics = Analytics.shared
     
-    /// Initialize a FlwKit flow view
+    /// Initialize a FlwKit flow view with just the flow key
+    /// - Parameter flowKey: The key of the flow to display
+    public init(_ flowKey: String) {
+        self.init(flowKey: flowKey, attributes: [:], onComplete: nil, onExit: nil)
+    }
+    
+    /// Initialize a FlwKit flow view with flow key and completion handler
+    /// - Parameters:
+    ///   - flowKey: The key of the flow to display
+    ///   - onComplete: Callback when flow completes with final answers
+    public init(_ flowKey: String, onComplete: @escaping ([String: Any]) -> Void) {
+        self.init(flowKey: flowKey, attributes: [:], onComplete: onComplete, onExit: nil)
+    }
+    
+    /// Initialize a FlwKit flow view (full control)
     /// - Parameters:
     ///   - flowKey: The key of the flow to display
     ///   - attributes: Additional attributes to pass to the flow
