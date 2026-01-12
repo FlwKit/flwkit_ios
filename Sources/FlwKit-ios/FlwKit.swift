@@ -186,11 +186,4 @@ public struct FlwKitFlowView: View {
     }
 }
 
-// MARK: - Internal Access Extensions
-
-extension Analytics {
-    var currentUserId: String? {
-        return userId
-    }
-}
 

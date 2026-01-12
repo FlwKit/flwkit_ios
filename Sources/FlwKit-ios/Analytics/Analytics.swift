@@ -32,6 +32,11 @@ class Analytics {
         }
     }
     
+    /// Current user ID (for internal access)
+    var currentUserId: String? {
+        return userId
+    }
+    
     func track(_ eventName: String, properties: [String: Any] = [:]) {
         let event = AnalyticsEvent(
             name: eventName,
