@@ -9,7 +9,8 @@ struct TestimonialBlockRenderer: BlockRenderer {
         return AnyView(
             VStack(alignment: .leading, spacing: Spacing.sm.value) {
                 Text("\"\(quote)\"")
-                    .font(.system(size: 16, style: .italic))
+                    .font(.system(size: 16))
+                    .italic()
                     .foregroundColor(tokens.textPrimaryColor)
                 
                 if !author.isEmpty {
