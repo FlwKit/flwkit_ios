@@ -19,26 +19,25 @@ public struct FlwKit {
     }
     
     /// Present a flow programmatically (for UIKit or programmatic SwiftUI)
+    /// Note: flowKey is now fetched automatically from the backend based on appId
     /// - Parameters:
-    ///   - flowKey: The key of the flow to present
     ///   - attributes: Additional attributes to pass to the flow
     ///   - onComplete: Callback when flow completes with final answers
     ///   - onExit: Optional callback when user exits the flow
     ///   - completion: Completion handler with the flow view or error
     public static func present(
-        flowKey: String,
         attributes: [String: Any] = [:],
         onComplete: @escaping ([String: Any]) -> Void = { _ in },
         onExit: (() -> Void)? = nil,
         completion: @escaping (Result<AnyView, Error>) -> Void
     ) {
-        apiClient.fetchFlow(flowKey: flowKey, userId: analytics.currentUserId) { result in
+        apiClient.fetchFlow(userId: analytics.currentUserId) { result in
             switch result {
             case .success(let flow):
                 let view = AnyView(
                     FlowView(
                     flow: flow,
-                    flowKey: flowKey,
+                    flowKey: flow.flowKey,
                     userId: analytics.currentUserId,
                     attributes: attributes,
                     onComplete: onComplete,
@@ -59,21 +58,22 @@ public struct FlwKit {
 /// 
 /// Simplest usage:
 /// ```swift
-/// FlwKitFlowView("onboarding")
+/// FlwKitFlowView()
 /// ```
 /// 
 /// With completion handler:
 /// ```swift
-/// FlwKitFlowView("onboarding") { answers in
+/// FlwKitFlowView { answers in
 ///     print(answers)
 /// }
 /// ```
+/// 
+/// Note: flowKey is now automatically fetched from the backend based on appId
 public struct FlwKitFlowView: View {
     @State private var flow: Flow?
     @State private var isLoading: Bool = true
     @State private var error: Error?
     
-    let flowKey: String
     let attributes: [String: Any]
     let onComplete: (([String: Any]) -> Void)?
     let onExit: (() -> Void)?
@@ -81,33 +81,28 @@ public struct FlwKitFlowView: View {
     private let apiClient = APIClient.shared
     private let analytics = Analytics.shared
     
-    /// Initialize a FlwKit flow view with just the flow key
-    /// - Parameter flowKey: The key of the flow to display
-    public init(_ flowKey: String) {
-        self.init(flowKey: flowKey, attributes: [:], onComplete: nil, onExit: nil)
+    /// Initialize a FlwKit flow view (flow is fetched automatically)
+    public init() {
+        self.init(attributes: [:], onComplete: nil, onExit: nil)
     }
     
-    /// Initialize a FlwKit flow view with flow key and completion handler
+    /// Initialize a FlwKit flow view with completion handler
     /// - Parameters:
-    ///   - flowKey: The key of the flow to display
     ///   - onComplete: Callback when flow completes with final answers
-    public init(_ flowKey: String, onComplete: @escaping ([String: Any]) -> Void) {
-        self.init(flowKey: flowKey, attributes: [:], onComplete: onComplete, onExit: nil)
+    public init(onComplete: @escaping ([String: Any]) -> Void) {
+        self.init(attributes: [:], onComplete: onComplete, onExit: nil)
     }
     
     /// Initialize a FlwKit flow view (full control)
     /// - Parameters:
-    ///   - flowKey: The key of the flow to display
     ///   - attributes: Additional attributes to pass to the flow
     ///   - onComplete: Optional callback when flow completes with final answers
     ///   - onExit: Optional callback when user exits the flow
     public init(
-        flowKey: String,
         attributes: [String: Any] = [:],
         onComplete: (([String: Any]) -> Void)? = nil,
         onExit: (() -> Void)? = nil
     ) {
-        self.flowKey = flowKey
         self.attributes = attributes
         self.onComplete = onComplete
         self.onExit = onExit
@@ -125,7 +120,7 @@ public struct FlwKitFlowView: View {
             } else if let flow = flow {
                 FlowView(
                     flow: flow,
-                    flowKey: flowKey,
+                    flowKey: flow.flowKey,
                     userId: analytics.currentUserId,
                     attributes: attributes,
                     onComplete: onComplete ?? { _ in },
@@ -142,45 +137,15 @@ public struct FlwKitFlowView: View {
         isLoading = true
         error = nil
         
-        apiClient.fetchFlow(flowKey: flowKey, userId: analytics.currentUserId) { result in
+        apiClient.fetchFlow(userId: analytics.currentUserId) { result in
             isLoading = false
             
             switch result {
             case .success(let fetchedFlow):
                 self.flow = fetchedFlow
-                
-                // Load themes for the flow
-                loadThemes(for: fetchedFlow)
+                // Themes are already included in the flow response and registered
             case .failure(let err):
                 self.error = err
-            }
-        }
-    }
-    
-    private func loadThemes(for flow: Flow) {
-        var themeIds = Set<String>()
-        
-        // Collect theme IDs from screens
-        for screen in flow.screens {
-            if let themeId = screen.themeId {
-                themeIds.insert(themeId)
-            }
-        }
-        
-        // Add default theme if present
-        if let defaultThemeId = flow.defaultThemeId {
-            themeIds.insert(defaultThemeId)
-        }
-        
-        // Load themes
-        for themeId in themeIds {
-            if ThemeManager.shared.getTheme(themeId: themeId).id == "default" {
-                // Only fetch if not already cached
-                APIClient.shared.fetchTheme(themeId: themeId) { result in
-                    if case .success(let theme) = result {
-                        ThemeManager.shared.registerTheme(theme)
-                    }
-                }
             }
         }
     }

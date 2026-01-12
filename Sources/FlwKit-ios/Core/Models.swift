@@ -2,20 +2,63 @@ import Foundation
 
 // MARK: - Flow Models
 
+// FlowPayloadV1 - matches backend response structure
+public struct FlowPayloadV1: Codable {
+    public let schemaVersion: Int
+    public let flowKey: String
+    public let version: Int
+    public let entryScreenId: String
+    public let defaultThemeId: String?
+    public let themes: [Theme]
+    public let screens: [Screen]
+    
+    enum CodingKeys: String, CodingKey {
+        case schemaVersion
+        case flowKey
+        case version
+        case entryScreenId
+        case defaultThemeId
+        case themes
+        case screens
+    }
+}
+
+// Flow - internal representation (converted from FlowPayloadV1)
 public struct Flow: Codable {
     public let id: String
     public let key: String
     public let version: Int
+    public let entryScreenId: String
     public let screens: [Screen]
     public let defaultThemeId: String?
-    public let schemaVersion: String
+    public let themes: [Theme]
+    public let schemaVersion: Int
     
-    public init(id: String, key: String, version: Int, screens: [Screen], defaultThemeId: String? = nil, schemaVersion: String = "1.0") {
+    // Computed property for compatibility
+    public var flowKey: String {
+        return key
+    }
+    
+    public init(from payload: FlowPayloadV1) {
+        self.id = payload.flowKey // Use flowKey as id
+        self.key = payload.flowKey
+        self.version = payload.version
+        self.entryScreenId = payload.entryScreenId
+        self.screens = payload.screens
+        self.defaultThemeId = payload.defaultThemeId
+        self.themes = payload.themes
+        self.schemaVersion = payload.schemaVersion
+    }
+    
+    // Legacy init for backwards compatibility
+    public init(id: String, key: String, version: Int, screens: [Screen], defaultThemeId: String? = nil, schemaVersion: Int = 1, entryScreenId: String? = nil, themes: [Theme] = []) {
         self.id = id
         self.key = key
         self.version = version
+        self.entryScreenId = entryScreenId ?? screens.first?.id ?? ""
         self.screens = screens
         self.defaultThemeId = defaultThemeId
+        self.themes = themes
         self.schemaVersion = schemaVersion
     }
 }

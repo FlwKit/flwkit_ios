@@ -69,25 +69,25 @@ import FlwKit_ios
 
 struct OnboardingView: View {
     var body: some View {
-        FlwKitFlowView("onboarding")
+        FlwKitFlowView()
     }
 }
 ```
 
-**That's it!** Everything else (loading, state, analytics, error handling) is handled automatically.
+**That's it!** The flow is automatically fetched from your backend based on your appId. Everything else (loading, state, analytics, error handling) is handled automatically.
 
 ## Usage Examples
 
 ### Basic Flow
 
 ```swift
-FlwKitFlowView("welcome-onboarding")
+FlwKitFlowView()
 ```
 
 ### With Completion Handler
 
 ```swift
-FlwKitFlowView("onboarding") { answers in
+FlwKitFlowView { answers in
     print("User completed onboarding!")
     print("Answers: \(answers)")
     // Navigate to main screen
@@ -98,7 +98,6 @@ FlwKitFlowView("onboarding") { answers in
 
 ```swift
 FlwKitFlowView(
-    flowKey: "onboarding",
     attributes: [
         "userId": "12345",
         "source": "app_launch",
@@ -120,7 +119,6 @@ import SwiftUI
 class ViewController: UIViewController {
     @IBAction func showOnboarding() {
         FlwKit.present(
-            flowKey: "onboarding",
             onComplete: { [weak self] answers in
                 print("Completed: \(answers)")
                 self?.dismiss(animated: true)

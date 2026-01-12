@@ -26,19 +26,14 @@ class APIClient {
         }
     }
     
-    func fetchFlow(flowKey: String, userId: String? = nil, completion: @escaping (Result<Flow, Error>) -> Void) {
-        // Check cache first
-        if let cachedFlow = cache.getFlow(flowKey: flowKey) {
-            completion(.success(cachedFlow))
-            return
-        }
-        
+    func fetchFlow(userId: String? = nil, completion: @escaping (Result<Flow, Error>) -> Void) {
         guard let appId = appId, let apiKey = apiKey else {
             completion(.failure(FlwKitError.notConfigured))
             return
         }
         
-        var urlString = "\(baseURL)/api/v1/flows/\(flowKey)"
+        // Build URL: /sdk/v1/apps/:appId/flow
+        var urlString = "\(baseURL)/sdk/v1/apps/\(appId)/flow"
         if let userId = userId {
             urlString += "?userId=\(userId)"
         }
@@ -48,16 +43,27 @@ class APIClient {
             return
         }
         
+        // Check cache first (by appId since we don't know flowKey yet)
+        if let cachedFlow = cache.getFlow(flowKey: appId) {
+            completion(.success(cachedFlow))
+            // Still fetch in background to update cache
+            fetchFlowFromAPI(url: url, apiKey: apiKey, appId: appId, completion: { _ in })
+            return
+        }
+        
+        fetchFlowFromAPI(url: url, apiKey: apiKey, appId: appId, completion: completion)
+    }
+    
+    private func fetchFlowFromAPI(url: URL, apiKey: String, appId: String, completion: @escaping (Result<Flow, Error>) -> Void) {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        request.setValue(appId, forHTTPHeaderField: "X-App-Id")
         request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         
         session.dataTask(with: request) { [weak self] data, response, error in
             if let error = error {
                 // Try to use cached flow on network failure
-                if let cachedFlow = self?.cache.getFlow(flowKey: flowKey) {
+                if let cachedFlow = self?.cache.getFlow(flowKey: appId) {
                     completion(.success(cachedFlow))
                 } else {
                     completion(.failure(error))
@@ -72,7 +78,7 @@ class APIClient {
             
             guard (200...299).contains(httpResponse.statusCode) else {
                 // Try cache on error
-                if let cachedFlow = self?.cache.getFlow(flowKey: flowKey) {
+                if let cachedFlow = self?.cache.getFlow(flowKey: appId) {
                     completion(.success(cachedFlow))
                 } else {
                     completion(.failure(FlwKitError.httpError(httpResponse.statusCode)))
@@ -87,8 +93,21 @@ class APIClient {
             
             do {
                 let decoder = JSONDecoder()
-                let flow = try decoder.decode(Flow.self, from: data)
-                self?.cache.saveFlow(flow, for: flowKey)
+                // Decode as FlowPayloadV1 first
+                let payload = try decoder.decode(FlowPayloadV1.self, from: data)
+                // Convert to Flow
+                let flow = Flow(from: payload)
+                
+                // Cache using flowKey from response
+                self?.cache.saveFlow(flow, for: flow.flowKey)
+                // Also cache by appId for quick lookup
+                self?.cache.saveFlow(flow, for: appId)
+                
+                // Register all themes from the response
+                for theme in flow.themes {
+                    ThemeManager.shared.registerTheme(theme)
+                }
+                
                 completion(.success(flow))
             } catch {
                 completion(.failure(error))
@@ -96,10 +115,19 @@ class APIClient {
         }.resume()
     }
     
+    // Note: Themes are now included in the flow response, so separate fetching is rarely needed
+    // This method is kept for backwards compatibility or edge cases
     func fetchTheme(themeId: String, completion: @escaping (Result<Theme, Error>) -> Void) {
         // Check cache first
         if let cachedTheme = cache.getTheme(themeId: themeId) {
             completion(.success(cachedTheme))
+            return
+        }
+        
+        // Check if theme is already registered in ThemeManager
+        let theme = ThemeManager.shared.getTheme(themeId: themeId)
+        if theme.id != "default" {
+            completion(.success(theme))
             return
         }
         
@@ -108,14 +136,13 @@ class APIClient {
             return
         }
         
-        guard let url = URL(string: "\(baseURL)/api/v1/themes/\(themeId)") else {
+        guard let url = URL(string: "\(baseURL)/sdk/v1/themes/\(themeId)") else {
             completion(.failure(FlwKitError.invalidURL))
             return
         }
         
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        request.setValue(appId, forHTTPHeaderField: "X-App-Id")
         request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         
@@ -136,6 +163,7 @@ class APIClient {
                 let decoder = JSONDecoder()
                 let theme = try decoder.decode(Theme.self, from: data)
                 self?.cache.saveTheme(theme, for: themeId)
+                ThemeManager.shared.registerTheme(theme)
                 completion(.success(theme))
             } catch {
                 completion(.failure(error))

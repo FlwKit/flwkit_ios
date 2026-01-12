@@ -31,10 +31,12 @@ struct FlowView: View {
         
         _currentState = State(initialValue: initialState)
         
-        // Restore screen position
+        // Restore screen position or start at entry screen
         if let currentScreenId = initialState.currentScreenId,
            let index = flow.screens.firstIndex(where: { $0.id == currentScreenId }) {
             _currentScreenIndex = State(initialValue: index)
+        } else if let entryIndex = flow.screens.firstIndex(where: { $0.id == flow.entryScreenId }) {
+            _currentScreenIndex = State(initialValue: entryIndex)
         }
         
         self.onComplete = onComplete
