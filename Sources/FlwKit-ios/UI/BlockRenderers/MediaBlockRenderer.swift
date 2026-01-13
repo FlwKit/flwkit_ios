@@ -1,37 +1,168 @@
 import SwiftUI
 
+// Width mode for media blocks
+enum WidthMode {
+    case auto
+    case fixed(CGFloat)
+    case fullWidth // Default to 100%
+}
+
 struct MediaBlockRenderer: BlockRenderer {
     func render(block: Block, theme: Theme, state: FlowState, onAnswer: @escaping (String, Any) -> Void, onAction: @escaping (String, String?) -> Void) -> AnyView {
-        return AnyView(
-            VStack {
-                if let imageUrl = block.imageUrl, let url = URL(string: imageUrl) {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .empty:
-                            ProgressView()
-                                .frame(height: 200)
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .cornerRadius(theme.tokens.cornerRadius)
-                        case .failure:
-                            Image(systemName: "photo")
-                                .foregroundColor(.gray)
-                                .frame(height: 200)
-                        @unknown default:
-                            EmptyView()
-                        }
-                    }
-                } else {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(height: 200)
-                        .cornerRadius(theme.tokens.cornerRadius)
+        // Get URL - prefer new 'url' field, fallback to legacy 'imageUrl'
+        let imageUrlString = block.url ?? block.imageUrl
+        
+        guard let urlString = imageUrlString, let url = URL(string: urlString) else {
+            return AnyView(
+                MediaPlaceholderView(
+                    message: "Image not available",
+                    borderRadius: block.borderRadius,
+                    padding: block.padding,
+                    margin: block.margin
+                )
+            )
+        }
+        
+        // Calculate width
+        let widthMode: WidthMode = {
+            if let widthValue = block.width {
+                switch widthValue {
+                case .auto:
+                    return .auto
+                case .fixed(let value):
+                    return .fixed(CGFloat(value))
                 }
             }
-            .padding(.horizontal, Spacing.md.value)
+            return .fullWidth // Default to 100%
+        }()
+        
+        // Calculate height
+        let height: CGFloat? = block.mediaHeight.map { CGFloat($0) }
+        
+        // Calculate aspect ratio (only if width and height are not explicitly set)
+        let aspectRatio: CGFloat? = {
+            // Aspect ratio only applies when both width and height are not set
+            let hasExplicitWidth = block.width != nil
+            let hasExplicitHeight = block.mediaHeight != nil
+            
+            if !hasExplicitWidth && !hasExplicitHeight {
+                if let aspect = block.aspect {
+                    switch aspect {
+                    case "square":
+                        return 1.0
+                    case "wide":
+                        return 16.0 / 9.0
+                    case "tall":
+                        return 9.0 / 16.0
+                    default:
+                        return nil
+                    }
+                }
+            }
+            return nil
+        }()
+        
+        // Calculate padding
+        let paddingVertical = block.padding?.vertical.map { CGFloat($0) } ?? 0
+        let paddingHorizontal = block.padding?.horizontal.map { CGFloat($0) } ?? 0
+        
+        // Calculate margin
+        let marginTop = block.margin?.top.map { CGFloat($0) } ?? 0
+        let marginBottom = block.margin?.bottom.map { CGFloat($0) } ?? 0
+        let marginLeft = block.margin?.left.map { CGFloat($0) } ?? 0
+        let marginRight = block.margin?.right.map { CGFloat($0) } ?? 0
+        
+        // Border radius
+        let borderRadius = block.borderRadius.map { CGFloat($0) } ?? theme.tokens.cornerRadius
+        
+        return AnyView(
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .empty:
+                    ProgressView()
+                        .applyWidth(widthMode)
+                        .frame(height: height ?? 200)
+                        .applyAspectRatio(aspectRatio)
+                case .success(let image):
+                    image
+                        .resizable()
+                        .applyAspectRatio(aspectRatio)
+                        .applyWidth(widthMode)
+                        .frame(height: height)
+                        .cornerRadius(borderRadius)
+                        .clipped()
+                case .failure:
+                    MediaPlaceholderView(
+                        message: "Image failed to load",
+                        borderRadius: borderRadius,
+                        padding: block.padding,
+                        margin: block.margin
+                    )
+                @unknown default:
+                    EmptyView()
+                }
+            }
+            .padding(.vertical, paddingVertical)
+            .padding(.horizontal, paddingHorizontal)
+            .padding(.top, marginTop)
+            .padding(.bottom, marginBottom)
+            .padding(.leading, marginLeft)
+            .padding(.trailing, marginRight)
         )
+    }
+}
+
+// Helper extensions
+extension View {
+    @ViewBuilder
+    func applyAspectRatio(_ ratio: CGFloat?) -> some View {
+        if let ratio = ratio {
+            self.aspectRatio(ratio, contentMode: .fit)
+        } else {
+            self
+        }
+    }
+    
+    @ViewBuilder
+    func applyWidth(_ mode: WidthMode) -> some View {
+        switch mode {
+        case .auto:
+            // Auto width - no constraint, size to content
+            self
+        case .fixed(let width):
+            self.frame(width: width)
+        case .fullWidth:
+            self.frame(maxWidth: .infinity)
+        }
+    }
+}
+
+
+// Placeholder view for missing or failed images
+struct MediaPlaceholderView: View {
+    let message: String
+    let borderRadius: CGFloat?
+    let padding: MediaPadding?
+    let margin: MediaMargin?
+    
+    var body: some View {
+        VStack {
+            Image(systemName: "photo")
+                .foregroundColor(.gray)
+            Text(message)
+                .font(.caption)
+                .foregroundColor(.gray)
+        }
+        .frame(minHeight: 100)
+        .frame(maxWidth: .infinity)
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(borderRadius ?? 8)
+        .padding(.vertical, padding?.vertical.map { CGFloat($0) } ?? 0)
+        .padding(.horizontal, padding?.horizontal.map { CGFloat($0) } ?? 0)
+        .padding(.top, margin?.top.map { CGFloat($0) } ?? 0)
+        .padding(.bottom, margin?.bottom.map { CGFloat($0) } ?? 0)
+        .padding(.leading, margin?.left.map { CGFloat($0) } ?? 0)
+        .padding(.trailing, margin?.right.map { CGFloat($0) } ?? 0)
     }
 }
 
