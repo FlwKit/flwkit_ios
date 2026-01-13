@@ -112,7 +112,8 @@ public struct Block: Codable {
     public let secondary: CTAAction?
     
     // Spacer block
-    public let height: String?
+    public let size: String? // Token-based size: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+    public let height: Int? // Custom height in pixels (takes precedence over size)
     
     // Benefits list
     public let items: [String]?
@@ -132,7 +133,7 @@ public struct Block: Codable {
         case inputType = "input_type"
         case required, min, max, step
         case defaultValue = "default_value"
-        case primary, secondary, height, items, quote, author, text
+        case primary, secondary, size, height, items, quote, author, text
     }
 }
 
