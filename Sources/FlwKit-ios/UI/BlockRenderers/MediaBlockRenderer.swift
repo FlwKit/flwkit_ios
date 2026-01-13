@@ -16,7 +16,7 @@ struct MediaBlockRenderer: BlockRenderer {
             return AnyView(
                 MediaPlaceholderView(
                     message: "Image not available",
-                    borderRadius: block.borderRadius,
+                    borderRadius: block.borderRadius.map { CGFloat($0) },
                     padding: block.padding,
                     margin: block.margin
                 )

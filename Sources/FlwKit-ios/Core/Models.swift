@@ -138,14 +138,102 @@ public struct Block: Codable {
         case imageUrl = "image_url"
         case videoUrl = "video_url"
         case aspect, width
-        case mediaHeight = "height"
+        case height // Used by both media and spacer blocks (as Double)
         case padding, margin
         case borderRadius = "borderRadius"
         case options, multiple, placeholder
         case inputType = "input_type"
         case required, min, max, step
         case defaultValue = "default_value"
-        case primary, secondary, size, height, items, quote, author, text
+        case primary, secondary, size, items, quote, author, text
+    }
+    
+    // Custom decoding to handle "height" for both media and spacer blocks
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        type = try container.decode(String.self, forKey: .type)
+        key = try container.decodeIfPresent(String.self, forKey: .key)
+        style = try container.decodeIfPresent(String.self, forKey: .style)
+        title = try container.decodeIfPresent(String.self, forKey: .title)
+        subtitle = try container.decodeIfPresent(String.self, forKey: .subtitle)
+        url = try container.decodeIfPresent(String.self, forKey: .url)
+        imageUrl = try container.decodeIfPresent(String.self, forKey: .imageUrl)
+        videoUrl = try container.decodeIfPresent(String.self, forKey: .videoUrl)
+        aspect = try container.decodeIfPresent(String.self, forKey: .aspect)
+        width = try container.decodeIfPresent(MediaWidth.self, forKey: .width)
+        padding = try container.decodeIfPresent(MediaPadding.self, forKey: .padding)
+        margin = try container.decodeIfPresent(MediaMargin.self, forKey: .margin)
+        borderRadius = try container.decodeIfPresent(Double.self, forKey: .borderRadius)
+        options = try container.decodeIfPresent([ChoiceOption].self, forKey: .options)
+        multiple = try container.decodeIfPresent(Bool.self, forKey: .multiple)
+        placeholder = try container.decodeIfPresent(String.self, forKey: .placeholder)
+        inputType = try container.decodeIfPresent(String.self, forKey: .inputType)
+        required = try container.decodeIfPresent(Bool.self, forKey: .required)
+        min = try container.decodeIfPresent(Double.self, forKey: .min)
+        max = try container.decodeIfPresent(Double.self, forKey: .max)
+        step = try container.decodeIfPresent(Double.self, forKey: .step)
+        defaultValue = try container.decodeIfPresent(Double.self, forKey: .defaultValue)
+        primary = try container.decodeIfPresent(CTAAction.self, forKey: .primary)
+        secondary = try container.decodeIfPresent(CTAAction.self, forKey: .secondary)
+        size = try container.decodeIfPresent(String.self, forKey: .size)
+        items = try container.decodeIfPresent([String].self, forKey: .items)
+        quote = try container.decodeIfPresent(String.self, forKey: .quote)
+        author = try container.decodeIfPresent(String.self, forKey: .author)
+        text = try container.decodeIfPresent(String.self, forKey: .text)
+        
+        // Handle "height" - both media and spacer blocks use it as Double
+        let heightValue = try container.decodeIfPresent(Double.self, forKey: .height)
+        if type == "media" {
+            mediaHeight = heightValue
+            height = nil // Not used for media blocks
+        } else {
+            // For spacer and other blocks
+            mediaHeight = nil
+            height = heightValue
+        }
+    }
+    
+    // Custom encoding
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        
+        try container.encode(type, forKey: .type)
+        try container.encodeIfPresent(key, forKey: .key)
+        try container.encodeIfPresent(style, forKey: .style)
+        try container.encodeIfPresent(title, forKey: .title)
+        try container.encodeIfPresent(subtitle, forKey: .subtitle)
+        try container.encodeIfPresent(url, forKey: .url)
+        try container.encodeIfPresent(imageUrl, forKey: .imageUrl)
+        try container.encodeIfPresent(videoUrl, forKey: .videoUrl)
+        try container.encodeIfPresent(aspect, forKey: .aspect)
+        try container.encodeIfPresent(width, forKey: .width)
+        try container.encodeIfPresent(padding, forKey: .padding)
+        try container.encodeIfPresent(margin, forKey: .margin)
+        try container.encodeIfPresent(borderRadius, forKey: .borderRadius)
+        try container.encodeIfPresent(options, forKey: .options)
+        try container.encodeIfPresent(multiple, forKey: .multiple)
+        try container.encodeIfPresent(placeholder, forKey: .placeholder)
+        try container.encodeIfPresent(inputType, forKey: .inputType)
+        try container.encodeIfPresent(required, forKey: .required)
+        try container.encodeIfPresent(min, forKey: .min)
+        try container.encodeIfPresent(max, forKey: .max)
+        try container.encodeIfPresent(step, forKey: .step)
+        try container.encodeIfPresent(defaultValue, forKey: .defaultValue)
+        try container.encodeIfPresent(primary, forKey: .primary)
+        try container.encodeIfPresent(secondary, forKey: .secondary)
+        try container.encodeIfPresent(size, forKey: .size)
+        try container.encodeIfPresent(items, forKey: .items)
+        try container.encodeIfPresent(quote, forKey: .quote)
+        try container.encodeIfPresent(author, forKey: .author)
+        try container.encodeIfPresent(text, forKey: .text)
+        
+        // Encode height based on block type
+        if type == "media" {
+            try container.encodeIfPresent(mediaHeight, forKey: .height)
+        } else {
+            try container.encodeIfPresent(height, forKey: .height)
+        }
     }
 }
 
