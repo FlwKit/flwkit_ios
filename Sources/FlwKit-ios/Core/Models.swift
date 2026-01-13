@@ -93,6 +93,7 @@ public struct Block: Codable {
     public let imageUrl: String? // Legacy support
     public let videoUrl: String?
     public let aspect: String? // 'square' | 'wide' | 'tall'
+    public let align: String? // 'left' | 'center' | 'right' (defaults to 'center')
     public let width: MediaWidth? // number or "auto" string
     public let mediaHeight: Double? // Height in pixels (renamed to avoid conflict with spacer height)
     public let padding: MediaPadding?
@@ -137,7 +138,7 @@ public struct Block: Codable {
         case url
         case imageUrl = "image_url"
         case videoUrl = "video_url"
-        case aspect, width
+        case aspect, align, width
         case height // Used by both media and spacer blocks (as Double)
         case padding, margin
         case borderRadius = "borderRadius"
@@ -161,28 +162,9 @@ public struct Block: Codable {
         // Try to decode URL - check multiple possible field names
         url = try container.decodeIfPresent(String.self, forKey: .url)
         imageUrl = try container.decodeIfPresent(String.self, forKey: .imageUrl)
-        
-        // Debug: Log available keys for media blocks
-        #if DEBUG
-        if type == "media" {
-            let allKeys = container.allKeys
-            print("FlwKit Block Decode - Media block keys: \(allKeys.map { $0.stringValue })")
-            print("FlwKit Block Decode - Has 'url' key: \(allKeys.contains(.url))")
-            print("FlwKit Block Decode - Has 'image_url' key: \(allKeys.contains(.imageUrl))")
-            if allKeys.contains(.url) {
-                if let urlValue = try? container.decode(String.self, forKey: .url) {
-                    print("FlwKit Block Decode - 'url' value: \(urlValue)")
-                }
-            }
-            if allKeys.contains(.imageUrl) {
-                if let imageUrlValue = try? container.decode(String.self, forKey: .imageUrl) {
-                    print("FlwKit Block Decode - 'image_url' value: \(imageUrlValue)")
-                }
-            }
-        }
-        #endif
         videoUrl = try container.decodeIfPresent(String.self, forKey: .videoUrl)
         aspect = try container.decodeIfPresent(String.self, forKey: .aspect)
+        align = try container.decodeIfPresent(String.self, forKey: .align)
         width = try container.decodeIfPresent(MediaWidth.self, forKey: .width)
         padding = try container.decodeIfPresent(MediaPadding.self, forKey: .padding)
         margin = try container.decodeIfPresent(MediaMargin.self, forKey: .margin)
@@ -229,6 +211,7 @@ public struct Block: Codable {
         try container.encodeIfPresent(imageUrl, forKey: .imageUrl)
         try container.encodeIfPresent(videoUrl, forKey: .videoUrl)
         try container.encodeIfPresent(aspect, forKey: .aspect)
+        try container.encodeIfPresent(align, forKey: .align)
         try container.encodeIfPresent(width, forKey: .width)
         try container.encodeIfPresent(padding, forKey: .padding)
         try container.encodeIfPresent(margin, forKey: .margin)

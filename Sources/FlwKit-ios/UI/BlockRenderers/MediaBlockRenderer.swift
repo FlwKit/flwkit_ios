@@ -12,19 +12,8 @@ struct MediaBlockRenderer: BlockRenderer {
         // Get URL - prefer new 'url' field, fallback to legacy 'imageUrl'
         let imageUrlString = block.url ?? block.imageUrl
         
-        // Debug: Log what we received
-        #if DEBUG
-        print("FlwKit MediaBlock - type: \(block.type)")
-        print("FlwKit MediaBlock - url: \(block.url ?? "nil")")
-        print("FlwKit MediaBlock - imageUrl: \(block.imageUrl ?? "nil")")
-        print("FlwKit MediaBlock - final urlString: \(imageUrlString ?? "nil")")
-        #endif
-        
         // Check if URL string exists and is not empty
         guard let urlString = imageUrlString, !urlString.isEmpty, let url = URL(string: urlString) else {
-            #if DEBUG
-            print("FlwKit MediaBlock - Failed to create URL from: \(imageUrlString ?? "nil")")
-            #endif
             return AnyView(
                 MediaPlaceholderView(
                     message: "Image not available",
@@ -87,40 +76,78 @@ struct MediaBlockRenderer: BlockRenderer {
         // Border radius
         let borderRadius = block.borderRadius.map { CGFloat($0) } ?? theme.tokens.cornerRadius
         
-        return AnyView(
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .empty:
-                    ProgressView()
-                        .applyWidth(widthMode)
-                        .frame(height: height ?? 200)
-                        .applyAspectRatio(aspectRatio)
-                case .success(let image):
-                    image
-                        .resizable()
-                        .applyAspectRatio(aspectRatio)
-                        .applyWidth(widthMode)
-                        .frame(height: height)
-                        .cornerRadius(borderRadius)
-                        .clipped()
-                case .failure:
-                    MediaPlaceholderView(
-                        message: "Image failed to load",
-                        borderRadius: borderRadius,
-                        padding: block.padding,
-                        margin: block.margin
-                    )
-                @unknown default:
-                    EmptyView()
-                }
+        // Calculate alignment (default to center)
+        let alignment: HorizontalAlignment = {
+            switch block.align?.lowercased() {
+            case "left":
+                return .leading
+            case "right":
+                return .trailing
+            default:
+                return .center // Default to center when align is nil or invalid
             }
-            .padding(.vertical, paddingVertical)
-            .padding(.horizontal, paddingHorizontal)
-            .padding(.top, marginTop)
-            .padding(.bottom, marginBottom)
-            .padding(.leading, marginLeft)
-            .padding(.trailing, marginRight)
-        )
+        }()
+        
+        // Image view
+        let imageView = AsyncImage(url: url) { phase in
+            switch phase {
+            case .empty:
+                ProgressView()
+                    .applyWidth(widthMode)
+                    .frame(height: height ?? 200)
+                    .applyAspectRatio(aspectRatio)
+            case .success(let image):
+                image
+                    .resizable()
+                    .applyAspectRatio(aspectRatio)
+                    .applyWidth(widthMode)
+                    .frame(height: height)
+                    .cornerRadius(borderRadius)
+                    .clipped()
+            case .failure:
+                MediaPlaceholderView(
+                    message: "Image failed to load",
+                    borderRadius: borderRadius,
+                    padding: block.padding,
+                    margin: block.margin
+                )
+            @unknown default:
+                EmptyView()
+            }
+        }
+        .padding(.vertical, paddingVertical)
+        .padding(.horizontal, paddingHorizontal)
+        .padding(.top, marginTop)
+        .padding(.bottom, marginBottom)
+        .padding(.leading, marginLeft)
+        .padding(.trailing, marginRight)
+        
+        // Wrap in HStack for alignment (only if width is not fullWidth)
+        // If width is fullWidth, alignment has no visible effect
+        if case .fullWidth = widthMode {
+            // Full width - no need for alignment container
+            return AnyView(imageView)
+        } else {
+            // Use HStack for alignment
+            return AnyView(
+                HStack(alignment: .center, spacing: 0) {
+                    if alignment == .trailing {
+                        Spacer()
+                    } else if alignment == .center {
+                        Spacer()
+                    }
+                    
+                    imageView
+                    
+                    if alignment == .leading {
+                        Spacer()
+                    } else if alignment == .center {
+                        Spacer()
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            )
+        }
     }
 }
 
