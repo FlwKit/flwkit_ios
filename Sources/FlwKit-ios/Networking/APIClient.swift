@@ -43,14 +43,8 @@ class APIClient {
             return
         }
         
-        // Check cache first (by appId since we don't know flowKey yet)
-        if let cachedFlow = cache.getFlow(flowKey: appId) {
-            completion(.success(cachedFlow))
-            // Still fetch in background to update cache
-            fetchFlowFromAPI(url: url, apiKey: apiKey, appId: appId, completion: { _ in })
-            return
-        }
-        
+        // Always fetch fresh data from API first
+        // Cache is used as fallback only on network errors
         fetchFlowFromAPI(url: url, apiKey: apiKey, appId: appId, completion: completion)
     }
     
