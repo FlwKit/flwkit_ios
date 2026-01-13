@@ -89,8 +89,13 @@ public struct Block: Codable {
     public let subtitle: String?
     
     // Media block
-    public let imageUrl: String?
-    public let videoUrl: String?
+    public let url: String? // Resolved URL from backend (assetId is removed)
+    public let aspect: String? // 'square' | 'wide' | 'tall'
+    public let width: MediaWidth? // number | 'auto' | nil (defaults to 100%)
+    public let mediaHeight: Int? // Height in pixels (renamed to avoid conflict with spacer height)
+    public let padding: MediaPadding?
+    public let margin: MediaMargin?
+    public let borderRadius: Int? // Border radius in pixels
     
     // Choice block
     public let options: [ChoiceOption]?
@@ -127,8 +132,11 @@ public struct Block: Codable {
     
     enum CodingKeys: String, CodingKey {
         case type, key, style, title, subtitle
-        case imageUrl = "image_url"
-        case videoUrl = "video_url"
+        case url
+        case aspect, width
+        case mediaHeight = "height" // Maps to "height" in JSON for media blocks
+        case padding, margin
+        case borderRadius = "borderRadius"
         case options, multiple, placeholder
         case inputType = "input_type"
         case required, min, max, step
@@ -158,6 +166,63 @@ public struct CTAAction: Codable {
         self.label = label
         self.action = action
         self.target = target
+    }
+}
+
+// MARK: - Media Block Models
+
+// MediaWidth can be a number or the string "auto"
+public enum MediaWidth: Codable {
+    case auto
+    case fixed(Int)
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let string = try? container.decode(String.self) {
+            if string == "auto" {
+                self = .auto
+            } else {
+                throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid width string: \(string)")
+            }
+        } else if let int = try? container.decode(Int.self) {
+            self = .fixed(int)
+        } else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Width must be Int or 'auto' string")
+        }
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .auto:
+            try container.encode("auto")
+        case .fixed(let value):
+            try container.encode(value)
+        }
+    }
+}
+
+public struct MediaPadding: Codable {
+    public let vertical: Int?
+    public let horizontal: Int?
+    
+    public init(vertical: Int? = nil, horizontal: Int? = nil) {
+        self.vertical = vertical
+        self.horizontal = horizontal
+    }
+}
+
+public struct MediaMargin: Codable {
+    public let top: Int?
+    public let bottom: Int?
+    public let left: Int?
+    public let right: Int?
+    
+    public init(top: Int? = nil, bottom: Int? = nil, left: Int? = nil, right: Int? = nil) {
+        self.top = top
+        self.bottom = bottom
+        self.left = left
+        self.right = right
     }
 }
 
