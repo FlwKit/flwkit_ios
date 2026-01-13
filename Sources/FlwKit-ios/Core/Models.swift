@@ -68,12 +68,14 @@ public struct Screen: Codable {
     public let type: String
     public let themeId: String?
     public let blocks: [Block]
+    public let spacing: Double? // Vertical spacing between blocks in pixels (default: 16)
     
-    public init(id: String, type: String = "standard", themeId: String? = nil, blocks: [Block]) {
+    public init(id: String, type: String = "standard", themeId: String? = nil, blocks: [Block], spacing: Double? = nil) {
         self.id = id
         self.type = type
         self.themeId = themeId
         self.blocks = blocks
+        self.spacing = spacing
     }
 }
 
