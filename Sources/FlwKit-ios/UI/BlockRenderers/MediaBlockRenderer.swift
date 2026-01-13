@@ -12,7 +12,19 @@ struct MediaBlockRenderer: BlockRenderer {
         // Get URL - prefer new 'url' field, fallback to legacy 'imageUrl'
         let imageUrlString = block.url ?? block.imageUrl
         
-        guard let urlString = imageUrlString, let url = URL(string: urlString) else {
+        // Debug: Log what we received
+        #if DEBUG
+        print("FlwKit MediaBlock - type: \(block.type)")
+        print("FlwKit MediaBlock - url: \(block.url ?? "nil")")
+        print("FlwKit MediaBlock - imageUrl: \(block.imageUrl ?? "nil")")
+        print("FlwKit MediaBlock - final urlString: \(imageUrlString ?? "nil")")
+        #endif
+        
+        // Check if URL string exists and is not empty
+        guard let urlString = imageUrlString, !urlString.isEmpty, let url = URL(string: urlString) else {
+            #if DEBUG
+            print("FlwKit MediaBlock - Failed to create URL from: \(imageUrlString ?? "nil")")
+            #endif
             return AnyView(
                 MediaPlaceholderView(
                     message: "Image not available",
