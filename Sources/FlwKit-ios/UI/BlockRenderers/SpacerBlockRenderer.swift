@@ -2,18 +2,18 @@ import SwiftUI
 
 struct SpacerBlockRenderer: BlockRenderer {
     func render(block: Block, theme: Theme, state: FlowState, onAnswer: @escaping (String, Any) -> Void, onAction: @escaping (String, String?) -> Void) -> AnyView {
-        // Height takes precedence over size
+        // Height in pixels takes precedence over size token
         let finalHeight: CGFloat
         
-        if let height = block.height {
+        if let heightPixels = block.height {
             // Use custom height in pixels
-            finalHeight = CGFloat(height)
-        } else if let sizeString = block.size,
-                  let spacing = Spacing(from: sizeString) {
-            // Use token-based size
+            finalHeight = CGFloat(heightPixels)
+        } else if let sizeToken = block.size {
+            // Use size token (xs, sm, md, lg, xl)
+            let spacing = Spacing(from: sizeToken) ?? .md
             finalHeight = spacing.value
         } else {
-            // Default fallback (shouldn't happen if backend validates, but handle gracefully)
+            // Default to medium spacing if neither is provided
             finalHeight = Spacing.md.value
         }
         
