@@ -157,8 +157,30 @@ public struct Block: Codable {
         style = try container.decodeIfPresent(String.self, forKey: .style)
         title = try container.decodeIfPresent(String.self, forKey: .title)
         subtitle = try container.decodeIfPresent(String.self, forKey: .subtitle)
+        
+        // Try to decode URL - check multiple possible field names
         url = try container.decodeIfPresent(String.self, forKey: .url)
         imageUrl = try container.decodeIfPresent(String.self, forKey: .imageUrl)
+        
+        // Debug: Log available keys for media blocks
+        #if DEBUG
+        if type == "media" {
+            let allKeys = container.allKeys
+            print("FlwKit Block Decode - Media block keys: \(allKeys.map { $0.stringValue })")
+            print("FlwKit Block Decode - Has 'url' key: \(allKeys.contains(.url))")
+            print("FlwKit Block Decode - Has 'image_url' key: \(allKeys.contains(.imageUrl))")
+            if allKeys.contains(.url) {
+                if let urlValue = try? container.decode(String.self, forKey: .url) {
+                    print("FlwKit Block Decode - 'url' value: \(urlValue)")
+                }
+            }
+            if allKeys.contains(.imageUrl) {
+                if let imageUrlValue = try? container.decode(String.self, forKey: .imageUrl) {
+                    print("FlwKit Block Decode - 'image_url' value: \(imageUrlValue)")
+                }
+            }
+        }
+        #endif
         videoUrl = try container.decodeIfPresent(String.self, forKey: .videoUrl)
         aspect = try container.decodeIfPresent(String.self, forKey: .aspect)
         width = try container.decodeIfPresent(MediaWidth.self, forKey: .width)
