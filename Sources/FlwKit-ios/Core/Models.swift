@@ -112,6 +112,9 @@ public struct Block: Codable {
     // Choice block
     public let options: [ChoiceOption]?
     public let multiple: Bool?
+    // Note: Typography, background, size, and border properties are shared with text input blocks (declared above)
+    // Note: For choice blocks, height uses choiceHeight property
+    public let choiceHeight: Double? // Height in pixels for choice options
     
     // Text input block
     public let placeholder: String?
@@ -121,6 +124,9 @@ public struct Block: Codable {
     // Background properties
     public let backgroundColor: String? // Hex color (e.g., "#1f2937")
     public let backgroundOpacity: Double? // 0-100 (percentage)
+    // Choice block specific - active state background
+    public let activeBackgroundColor: String? // Hex color for selected state (e.g., "#10B981")
+    public let activeBackgroundOpacity: Double? // 0-100 (percentage) for selected state
     // Size properties - width can be reused from MediaWidth (number or "auto"), height is separate for text inputs
     public let inputHeight: Double? // Height in pixels for text inputs (to avoid conflict with spacer height)
     // Border properties
@@ -173,6 +179,8 @@ public struct Block: Codable {
         case spacing
         case backgroundColor = "backgroundColor"
         case backgroundOpacity = "backgroundOpacity"
+        case activeBackgroundColor = "activeBackgroundColor"
+        case activeBackgroundOpacity = "activeBackgroundOpacity"
         case borderColor = "borderColor"
         case borderOpacity = "borderOpacity"
         case borderWidth = "borderWidth"
@@ -219,9 +227,11 @@ public struct Block: Codable {
         inputType = try container.decodeIfPresent(String.self, forKey: .inputType)
         required = try container.decodeIfPresent(Bool.self, forKey: .required)
         
-        // Text input styling properties
+        // Text input and choice styling properties
         backgroundColor = try container.decodeIfPresent(String.self, forKey: .backgroundColor)
         backgroundOpacity = try container.decodeIfPresent(Double.self, forKey: .backgroundOpacity)
+        activeBackgroundColor = try container.decodeIfPresent(String.self, forKey: .activeBackgroundColor)
+        activeBackgroundOpacity = try container.decodeIfPresent(Double.self, forKey: .activeBackgroundOpacity)
         borderColor = try container.decodeIfPresent(String.self, forKey: .borderColor)
         borderOpacity = try container.decodeIfPresent(Double.self, forKey: .borderOpacity)
         borderWidth = try container.decodeIfPresent(Double.self, forKey: .borderWidth)
@@ -238,28 +248,38 @@ public struct Block: Codable {
         author = try container.decodeIfPresent(String.self, forKey: .author)
         text = try container.decodeIfPresent(String.self, forKey: .text)
         
-        // Handle "height" - media, spacer, text_input, and cta blocks use it as Double
+        // Handle "height" - media, spacer, text_input, cta, and choice blocks use it as Double
         let heightValue = try container.decodeIfPresent(Double.self, forKey: .height)
         if type == "media" {
             mediaHeight = heightValue
             height = nil
             inputHeight = nil
             ctaHeight = nil
+            choiceHeight = nil
         } else if type == "text_input" {
             inputHeight = heightValue
             mediaHeight = nil
             height = nil
             ctaHeight = nil
+            choiceHeight = nil
         } else if type == "cta" {
             ctaHeight = heightValue
             mediaHeight = nil
             inputHeight = nil
+            height = nil
+            choiceHeight = nil
+        } else if type == "choice" {
+            choiceHeight = heightValue
+            mediaHeight = nil
+            inputHeight = nil
+            ctaHeight = nil
             height = nil
         } else {
             // For spacer and other blocks
             mediaHeight = nil
             inputHeight = nil
             ctaHeight = nil
+            choiceHeight = nil
             height = heightValue
         }
     }
@@ -295,6 +315,8 @@ public struct Block: Codable {
         try container.encodeIfPresent(required, forKey: .required)
         try container.encodeIfPresent(backgroundColor, forKey: .backgroundColor)
         try container.encodeIfPresent(backgroundOpacity, forKey: .backgroundOpacity)
+        try container.encodeIfPresent(activeBackgroundColor, forKey: .activeBackgroundColor)
+        try container.encodeIfPresent(activeBackgroundOpacity, forKey: .activeBackgroundOpacity)
         try container.encodeIfPresent(borderColor, forKey: .borderColor)
         try container.encodeIfPresent(borderOpacity, forKey: .borderOpacity)
         try container.encodeIfPresent(borderWidth, forKey: .borderWidth)
@@ -318,6 +340,8 @@ public struct Block: Codable {
             try container.encodeIfPresent(inputHeight, forKey: .height)
         } else if type == "cta" {
             try container.encodeIfPresent(ctaHeight, forKey: .height)
+        } else if type == "choice" {
+            try container.encodeIfPresent(choiceHeight, forKey: .height)
         } else {
             try container.encodeIfPresent(height, forKey: .height)
         }
@@ -384,12 +408,16 @@ public struct MediaMargin: Codable {
 public struct ChoiceOption: Codable {
     public let label: String
     public let value: String
-    public let icon: String?
+    public let icon: String? // Legacy support for icon/emoji
+    public let emoji: String? // New: emoji support
+    public let action: String? // Per-option action: 'next' | 'back' | 'skip' | 'close' | 'submit'
     
-    public init(label: String, value: String, icon: String? = nil) {
+    public init(label: String, value: String, icon: String? = nil, emoji: String? = nil, action: String? = nil) {
         self.label = label
         self.value = value
         self.icon = icon
+        self.emoji = emoji
+        self.action = action
     }
 }
 
