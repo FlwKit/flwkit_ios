@@ -138,6 +138,10 @@ public struct Block: Codable {
     // CTA block
     public let primary: CTAAction?
     public let secondary: CTAAction?
+    public let sticky: Bool? // Default: true - sticky positioning at bottom
+    // Note: Typography, background, size, and border properties are shared with text input blocks (declared above)
+    // Note: For CTA blocks, height uses the same property as text inputs (inputHeight) or we can add ctaHeight
+    public let ctaHeight: Double? // Height in pixels for CTA buttons
     
     // Spacer block
     public let size: String? // Token-based size: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
@@ -172,12 +176,12 @@ public struct Block: Codable {
         case borderColor = "borderColor"
         case borderOpacity = "borderOpacity"
         case borderWidth = "borderWidth"
-        // Note: height is already declared above and used for media, spacer, and text_input blocks
+        // Note: height is already declared above and used for media, spacer, text_input, and cta blocks
         case options, multiple, placeholder
         case inputType = "input_type"
         case required, min, max, step
         case defaultValue = "default_value"
-        case primary, secondary, size, items, quote, author, text
+        case primary, secondary, sticky, size, items, quote, author, text
     }
     
     // Custom decoding to handle "height" for both media and spacer blocks
@@ -227,26 +231,35 @@ public struct Block: Codable {
         defaultValue = try container.decodeIfPresent(Double.self, forKey: .defaultValue)
         primary = try container.decodeIfPresent(CTAAction.self, forKey: .primary)
         secondary = try container.decodeIfPresent(CTAAction.self, forKey: .secondary)
+        sticky = try container.decodeIfPresent(Bool.self, forKey: .sticky)
         size = try container.decodeIfPresent(String.self, forKey: .size)
         items = try container.decodeIfPresent([String].self, forKey: .items)
         quote = try container.decodeIfPresent(String.self, forKey: .quote)
         author = try container.decodeIfPresent(String.self, forKey: .author)
         text = try container.decodeIfPresent(String.self, forKey: .text)
         
-        // Handle "height" - media, spacer, and text_input blocks use it as Double
+        // Handle "height" - media, spacer, text_input, and cta blocks use it as Double
         let heightValue = try container.decodeIfPresent(Double.self, forKey: .height)
         if type == "media" {
             mediaHeight = heightValue
-            height = nil // Not used for media blocks
+            height = nil
             inputHeight = nil
+            ctaHeight = nil
         } else if type == "text_input" {
             inputHeight = heightValue
             mediaHeight = nil
-            height = nil // Not used for text input blocks
+            height = nil
+            ctaHeight = nil
+        } else if type == "cta" {
+            ctaHeight = heightValue
+            mediaHeight = nil
+            inputHeight = nil
+            height = nil
         } else {
             // For spacer and other blocks
             mediaHeight = nil
             inputHeight = nil
+            ctaHeight = nil
             height = heightValue
         }
     }
@@ -291,6 +304,7 @@ public struct Block: Codable {
         try container.encodeIfPresent(defaultValue, forKey: .defaultValue)
         try container.encodeIfPresent(primary, forKey: .primary)
         try container.encodeIfPresent(secondary, forKey: .secondary)
+        try container.encodeIfPresent(sticky, forKey: .sticky)
         try container.encodeIfPresent(size, forKey: .size)
         try container.encodeIfPresent(items, forKey: .items)
         try container.encodeIfPresent(quote, forKey: .quote)
@@ -302,6 +316,8 @@ public struct Block: Codable {
             try container.encodeIfPresent(mediaHeight, forKey: .height)
         } else if type == "text_input" {
             try container.encodeIfPresent(inputHeight, forKey: .height)
+        } else if type == "cta" {
+            try container.encodeIfPresent(ctaHeight, forKey: .height)
         } else {
             try container.encodeIfPresent(height, forKey: .height)
         }
