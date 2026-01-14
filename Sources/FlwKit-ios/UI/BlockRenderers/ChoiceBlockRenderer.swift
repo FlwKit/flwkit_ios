@@ -175,9 +175,21 @@ struct ChoiceBlockView: View {
                     }
                     
                     // Trigger action when option becomes selected (not when deselected)
+                    // Map action names to match CTA action handling
                     if !wasSelected && selectedValues.contains(option.value) {
                         let action = option.action ?? "next"
-                        onAction(action, nil)
+                        // Map "close" to "exit" and "submit" to "complete" to match CTA action handling
+                        let mappedAction: String = {
+                            switch action {
+                            case "close":
+                                return "exit"
+                            case "submit":
+                                return "complete"
+                            default:
+                                return action
+                            }
+                        }()
+                        onAction(mappedAction, nil)
                     }
                 }) {
                     HStack(spacing: 8) {
