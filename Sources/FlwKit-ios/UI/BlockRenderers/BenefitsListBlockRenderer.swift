@@ -72,6 +72,16 @@ struct BenefitsListBlockRenderer: BlockRenderer {
             }
         }()
         
+        // Convert HorizontalAlignment to Alignment for frame modifier
+        let frameAlignment: Alignment = {
+            switch alignment {
+            case .leading: return .leading
+            case .center: return .center
+            case .trailing: return .trailing
+            default: return .leading
+            }
+        }()
+        
         return AnyView(
             VStack(alignment: alignment, spacing: 0) {
                 // Title if present
@@ -79,7 +89,7 @@ struct BenefitsListBlockRenderer: BlockRenderer {
                     Text(title)
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(tokens.textPrimaryColor)
-                        .frame(maxWidth: .infinity, alignment: alignment.toTextAlignment())
+                        .frame(maxWidth: .infinity, alignment: frameAlignment)
                         .padding(.bottom, Spacing.md.value)
                 }
                 
