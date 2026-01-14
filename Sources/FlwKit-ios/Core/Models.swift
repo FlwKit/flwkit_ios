@@ -154,7 +154,7 @@ public struct Block: Codable {
     public let height: Double? // Custom height in pixels (takes precedence over size)
     
     // Benefits list
-    public let items: [String]?
+    public let items: [BenefitsListItem]?
     // Note: Typography properties (color, opacity, fontWeight, fontStyle, fontSize, align, spacing) are shared with header blocks (declared above)
     // Icon properties for benefits list
     public let icon: String? // Lucide icon name (e.g., "Check", "Star", "Heart")
@@ -253,7 +253,7 @@ public struct Block: Codable {
         secondary = try container.decodeIfPresent(CTAAction.self, forKey: .secondary)
         sticky = try container.decodeIfPresent(Bool.self, forKey: .sticky)
         size = try container.decodeIfPresent(String.self, forKey: .size)
-        items = try container.decodeIfPresent([String].self, forKey: .items)
+        items = try container.decodeIfPresent([BenefitsListItem].self, forKey: .items)
         
         // Decode icon properties with maximum flexibility - handle all possible formats and types
         // Use try? to gracefully handle any decoding errors
@@ -462,6 +462,14 @@ public struct ChoiceOption: Codable {
         self.icon = icon
         self.emoji = emoji
         self.action = action
+    }
+}
+
+public struct BenefitsListItem: Codable {
+    public let text: String
+    
+    public init(text: String) {
+        self.text = text
     }
 }
 
