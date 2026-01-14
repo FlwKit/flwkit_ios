@@ -257,8 +257,8 @@ public struct Block: Codable {
         icon = try container.decodeIfPresent(String.self, forKey: .icon)
         
         // Try to decode iconColor - support both camelCase and snake_case
-        iconColor = try container.decodeIfPresent(String.self, forKey: .iconColor) ?? 
-                    try container.decodeIfPresent(String.self, forKey: .iconColorSnake)
+        iconColor = (try? container.decodeIfPresent(String.self, forKey: .iconColor)) ??
+                    (try? container.decodeIfPresent(String.self, forKey: .iconColorSnake))
         
         // Try to decode iconSize - support both camelCase and snake_case, and handle String conversion
         if let iconSizeValue = try? container.decodeIfPresent(Double.self, forKey: .iconSize) {
