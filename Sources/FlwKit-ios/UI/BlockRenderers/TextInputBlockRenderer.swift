@@ -251,12 +251,16 @@ struct CustomTextField: UIViewRepresentable {
         textField.layer.borderWidth = borderWidth
         textField.layer.cornerRadius = borderRadius
         
-        // Set frame constraints
+        // Set frame constraints and store them in coordinator
         if let width = width {
-            textField.widthAnchor.constraint(equalToConstant: width).isActive = true
+            let widthConstraint = textField.widthAnchor.constraint(equalToConstant: width)
+            widthConstraint.isActive = true
+            context.coordinator.widthConstraint = widthConstraint
         }
         if let height = height {
-            textField.heightAnchor.constraint(equalToConstant: height).isActive = true
+            let heightConstraint = textField.heightAnchor.constraint(equalToConstant: height)
+            heightConstraint.isActive = true
+            context.coordinator.heightConstraint = heightConstraint
         }
         
         return textField
@@ -264,6 +268,21 @@ struct CustomTextField: UIViewRepresentable {
     
     func updateUIView(_ uiView: UITextField, context: Context) {
         uiView.text = text
+        
+        // Update width constraint if needed
+        if let width = width, let widthConstraint = context.coordinator.widthConstraint {
+            widthConstraint.constant = width
+        }
+        
+        // Update height constraint if needed
+        if let height = height, let heightConstraint = context.coordinator.heightConstraint {
+            heightConstraint.constant = height
+        } else if let height = height, context.coordinator.heightConstraint == nil {
+            // Create height constraint if it doesn't exist
+            let heightConstraint = uiView.heightAnchor.constraint(equalToConstant: height)
+            heightConstraint.isActive = true
+            context.coordinator.heightConstraint = heightConstraint
+        }
         
         // Update text color
         uiView.textColor = UIColor(textColor)
@@ -297,6 +316,8 @@ struct CustomTextField: UIViewRepresentable {
     
     class Coordinator: NSObject, UITextFieldDelegate {
         let parent: CustomTextField
+        var widthConstraint: NSLayoutConstraint?
+        var heightConstraint: NSLayoutConstraint?
         
         init(_ parent: CustomTextField) {
             self.parent = parent
