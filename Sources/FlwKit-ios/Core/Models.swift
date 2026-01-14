@@ -102,7 +102,7 @@ public struct Block: Codable {
     public let imageUrl: String? // Legacy support
     public let videoUrl: String?
     public let aspect: String? // 'square' | 'wide' | 'tall'
-    public let align: String? // 'left' | 'center' | 'right' (defaults to 'center')
+    // Note: align is shared between header and media blocks (declared above)
     public let width: MediaWidth? // number or "auto" string
     public let mediaHeight: Double? // Height in pixels (renamed to avoid conflict with spacer height)
     public let padding: MediaPadding?
