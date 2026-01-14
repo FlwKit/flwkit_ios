@@ -155,6 +155,11 @@ public struct Block: Codable {
     
     // Benefits list
     public let items: [String]?
+    // Note: Typography properties (color, opacity, fontWeight, fontStyle, fontSize, align, spacing) are shared with header blocks (declared above)
+    // Icon properties for benefits list
+    public let icon: String? // Lucide icon name (e.g., "Check", "Star", "Heart")
+    public let iconColor: String? // Hex color (e.g., "#10B981")
+    public let iconSize: Double? // Icon size in pixels (8-64, default: 16)
     
     // Testimonial
     public let quote: String?
@@ -190,6 +195,7 @@ public struct Block: Codable {
         case required, min, max, step
         case defaultValue = "default_value"
         case primary, secondary, sticky, size, items, quote, author, text
+        case icon, iconColor = "iconColor", iconSize = "iconSize"
     }
     
     // Custom decoding to handle "height" for both media and spacer blocks
@@ -244,6 +250,9 @@ public struct Block: Codable {
         sticky = try container.decodeIfPresent(Bool.self, forKey: .sticky)
         size = try container.decodeIfPresent(String.self, forKey: .size)
         items = try container.decodeIfPresent([String].self, forKey: .items)
+        icon = try container.decodeIfPresent(String.self, forKey: .icon)
+        iconColor = try container.decodeIfPresent(String.self, forKey: .iconColor)
+        iconSize = try container.decodeIfPresent(Double.self, forKey: .iconSize)
         quote = try container.decodeIfPresent(String.self, forKey: .quote)
         author = try container.decodeIfPresent(String.self, forKey: .author)
         text = try container.decodeIfPresent(String.self, forKey: .text)
@@ -329,6 +338,9 @@ public struct Block: Codable {
         try container.encodeIfPresent(sticky, forKey: .sticky)
         try container.encodeIfPresent(size, forKey: .size)
         try container.encodeIfPresent(items, forKey: .items)
+        try container.encodeIfPresent(icon, forKey: .icon)
+        try container.encodeIfPresent(iconColor, forKey: .iconColor)
+        try container.encodeIfPresent(iconSize, forKey: .iconSize)
         try container.encodeIfPresent(quote, forKey: .quote)
         try container.encodeIfPresent(author, forKey: .author)
         try container.encodeIfPresent(text, forKey: .text)
