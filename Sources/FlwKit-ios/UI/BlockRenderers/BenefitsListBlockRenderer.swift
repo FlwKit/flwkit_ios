@@ -6,9 +6,6 @@ struct BenefitsListBlockRenderer: BlockRenderer {
         let tokens = theme.tokens
         let items = block.items ?? []
         
-        // Map Lucide icon names to SF Symbols
-        let iconName = mapIconToSFSymbol(block.icon ?? "Check")
-        
         // Get icon color (default: theme primary)
         let iconColor: Color = {
             if let iconColorHex = block.iconColor {
@@ -17,10 +14,9 @@ struct BenefitsListBlockRenderer: BlockRenderer {
             return tokens.primaryColor
         }()
         
-        // Get icon size (default: 16)
+        // Get icon size (default: 16, clamped between 8-64)
         let iconSize: CGFloat = {
             if let size = block.iconSize {
-                // Clamp between 8-64
                 return CGFloat(max(8, min(64, size)))
             }
             return 16
@@ -103,10 +99,11 @@ struct BenefitsListBlockRenderer: BlockRenderer {
                             }
                             
                             // Icon
-                            Image(systemName: iconName)
-                                .foregroundColor(iconColor)
-                                .font(.system(size: iconSize))
-                                .frame(width: iconSize, height: iconSize)
+                            IconView(
+                                iconName: block.icon,
+                                color: iconColor,
+                                size: iconSize
+                            )
                             
                             // Text
                             Text(item)
@@ -126,68 +123,6 @@ struct BenefitsListBlockRenderer: BlockRenderer {
             .padding(.horizontal, Spacing.md.value)
         )
     }
-    
-    // Map Lucide icon names to SF Symbols
-    private func mapIconToSFSymbol(_ iconName: String) -> String {
-        let iconMap: [String: String] = [
-            "Check": "checkmark",
-            "CheckCircle2": "checkmark.circle.fill",
-            "CircleCheck": "checkmark.circle",
-            "Star": "star.fill",
-            "Heart": "heart.fill",
-            "Zap": "bolt.fill",
-            "Shield": "shield.fill",
-            "Award": "award.fill",
-            "Sparkles": "sparkles",
-            "ThumbsUp": "hand.thumbsup.fill",
-            "ArrowRight": "arrow.right",
-            "Bell": "bell.fill",
-            "Bookmark": "bookmark.fill",
-            "Calendar": "calendar",
-            "Camera": "camera.fill",
-            "Clock": "clock.fill",
-            "Code": "code",
-            "Coffee": "cup.and.saucer.fill",
-            "Command": "command",
-            "Compass": "compass.fill",
-            "CreditCard": "creditcard.fill",
-            "Crown": "crown.fill",
-            "Download": "arrow.down.circle.fill",
-            "Eye": "eye.fill",
-            "File": "doc.fill",
-            "Filter": "line.3.horizontal.decrease.circle.fill",
-            "Flag": "flag.fill",
-            "Folder": "folder.fill",
-            "Gift": "gift.fill",
-            "Globe": "globe",
-            "Home": "house.fill",
-            "Info": "info.circle.fill",
-            "Key": "key.fill",
-            "Link": "link",
-            "Lock": "lock.fill",
-            "Mail": "envelope.fill",
-            "Map": "map.fill",
-            "MessageSquare": "message.fill",
-            "Music": "music.note",
-            "Package": "shippingbox.fill",
-            "Phone": "phone.fill",
-            "Play": "play.fill",
-            "Search": "magnifyingglass",
-            "Settings": "gearshape.fill",
-            "ShoppingCart": "cart.fill",
-            "Tag": "tag.fill",
-            "Target": "target",
-            "TrendingUp": "arrow.trending.up",
-            "Trophy": "trophy.fill",
-            "Umbrella": "umbrella.fill",
-            "User": "person.fill",
-            "Video": "video.fill",
-            "Wifi": "wifi",
-            "XCircle": "xmark.circle.fill"
-        ]
-        
-        return iconMap[iconName] ?? "checkmark" // Fallback to checkmark
-    }
 }
 
 // Extension to convert HorizontalAlignment to TextAlignment
@@ -201,4 +136,3 @@ extension HorizontalAlignment {
         }
     }
 }
-
