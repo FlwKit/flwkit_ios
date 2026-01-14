@@ -150,7 +150,6 @@ struct CTABlockRenderer: BlockRenderer {
             .padding(.horizontal, Spacing.md.value)
             .padding(.vertical, Spacing.md.value)
             .frame(maxWidth: .infinity)
-            .background(isSticky ? tokens.surfaceColor : Color.clear)
         )
     }
 }
