@@ -155,28 +155,33 @@ struct ChoiceBlockView: View {
                 
                 Button(action: {
                     let wasSelected = selectedValues.contains(option.value)
+                    var willBeSelected = false
                     
                     if isMultiple {
                         // Multi mode: toggle selection
                         if wasSelected {
                             selectedValues.remove(option.value)
+                            willBeSelected = false
                         } else {
                             selectedValues.insert(option.value)
+                            willBeSelected = true
                         }
                         onAnswer(blockKey, Array(selectedValues))
                     } else {
                         // Single mode: only one option can be selected
                         if wasSelected {
                             selectedValues.removeAll()
+                            willBeSelected = false
                         } else {
                             selectedValues = [option.value]
+                            willBeSelected = true
                         }
                         onAnswer(blockKey, option.value)
                     }
                     
                     // Trigger action when option becomes selected (not when deselected)
                     // Map action names to match CTA action handling
-                    if !wasSelected && selectedValues.contains(option.value) {
+                    if !wasSelected && willBeSelected {
                         let action = option.action ?? "next"
                         // Map "close" to "exit" and "submit" to "complete" to match CTA action handling
                         let mappedAction: String = {
