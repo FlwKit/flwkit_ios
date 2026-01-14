@@ -74,6 +74,22 @@ struct TextInputBlockView: View {
             }
         }()
         
+        // Convert Font.Weight to UIFont.Weight for UIFont usage
+        let uiFontWeight: UIFont.Weight = {
+            switch fontWeight {
+            case .bold:
+                return .bold
+            case .semibold:
+                return .semibold
+            case .medium:
+                return .medium
+            case .regular:
+                return .regular
+            default:
+                return .regular
+            }
+        }()
+        
         // Get font style (default: normal)
         let isItalic = block.fontStyle?.lowercased() == "italic"
         
@@ -83,7 +99,7 @@ struct TextInputBlockView: View {
         // Create font with italic support for iOS 15
         let inputFont: Font = {
             if isItalic {
-                let descriptor = UIFont.systemFont(ofSize: CGFloat(fontSize), weight: fontWeight).fontDescriptor.withSymbolicTraits(.traitItalic)
+                let descriptor = UIFont.systemFont(ofSize: CGFloat(fontSize), weight: uiFontWeight).fontDescriptor.withSymbolicTraits(.traitItalic)
                 if let descriptor = descriptor {
                     return Font(UIFont(descriptor: descriptor, size: CGFloat(fontSize)))
                 }
@@ -147,7 +163,6 @@ struct TextInputBlockView: View {
             
             TextField(placeholder, text: $text)
                 .font(inputFont)
-                .kerning(letterSpacing ?? 0) // Use kerning for iOS 15 compatibility
                 .multilineTextAlignment(textAlignment)
                 .textFieldStyle(PlainTextFieldStyle())
                 .padding(.horizontal, 16)
