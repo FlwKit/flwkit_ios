@@ -106,7 +106,7 @@ struct BenefitsListBlockRenderer: BlockRenderer {
                             )
                             
                             // Text
-                            Text(item)
+                            Text(item.text)
                                 .font(itemFont)
                                 .kerning(letterSpacing ?? 0) // Use kerning for iOS 15 compatibility
                                 .multilineTextAlignment(alignment.toTextAlignment())
