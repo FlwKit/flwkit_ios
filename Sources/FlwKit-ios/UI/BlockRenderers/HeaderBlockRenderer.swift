@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct HeaderBlockRenderer: BlockRenderer {
     func render(block: Block, theme: Theme, state: FlowState, onAnswer: @escaping (String, Any) -> Void, onAction: @escaping (String, String?) -> Void) -> AnyView {
@@ -50,14 +51,25 @@ struct HeaderBlockRenderer: BlockRenderer {
         // Get letter spacing (default: nil = no custom spacing)
         let letterSpacing: CGFloat? = block.spacing.map { CGFloat($0) }
         
+        // Create font with italic support for iOS 15
+        let titleFont: Font = {
+            if isItalic {
+                // Use custom font descriptor for italic on iOS 15
+                let descriptor = UIFont.systemFont(ofSize: CGFloat(fontSize), weight: fontWeight == .bold ? .bold : .regular).fontDescriptor.withSymbolicTraits(.traitItalic)
+                if let descriptor = descriptor {
+                    return Font(UIFont(descriptor: descriptor, size: CGFloat(fontSize)))
+                }
+            }
+            return .system(size: CGFloat(fontSize), weight: fontWeight)
+        }()
+        
         return AnyView(
             VStack(alignment: alignment, spacing: Spacing.sm.value) {
                 if let title = block.title {
                     Text(title)
-                        .font(.system(size: CGFloat(fontSize), weight: fontWeight))
-                        .italic(isItalic)
+                        .font(titleFont)
                         .foregroundColor(textColor)
-                        .tracking(letterSpacing ?? 0)
+                        .kerning(letterSpacing ?? 0) // Use kerning instead of tracking for iOS 15 compatibility
                 }
                 if let subtitle = block.subtitle {
                     Text(subtitle)
