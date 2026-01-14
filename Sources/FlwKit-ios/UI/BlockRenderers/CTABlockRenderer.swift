@@ -110,10 +110,10 @@ struct CTABlockRenderer: BlockRenderer {
                             .kerning(letterSpacing ?? 0) // Use kerning for iOS 15 compatibility
                             .multilineTextAlignment(textAlignment)
                             .foregroundColor(textColor)
-                            .frame(width: width, height: height)
-                            .frame(maxWidth: width == nil ? .infinity : nil)
                             .padding(.horizontal, 24)
                             .padding(.vertical, 12)
+                            .frame(width: width, height: height)
+                            .frame(maxWidth: width == nil ? .infinity : nil)
                             .background(backgroundColor)
                             .overlay(
                                 RoundedRectangle(cornerRadius: CGFloat(borderRadius))
@@ -121,6 +121,7 @@ struct CTABlockRenderer: BlockRenderer {
                             )
                             .cornerRadius(CGFloat(borderRadius))
                     }
+                    .buttonStyle(PlainButtonStyle()) // Remove default button styling
                 }
                 
                 if let secondary = block.secondary {
@@ -132,10 +133,10 @@ struct CTABlockRenderer: BlockRenderer {
                             .kerning(letterSpacing ?? 0) // Use kerning for iOS 15 compatibility
                             .multilineTextAlignment(textAlignment)
                             .foregroundColor(textColor)
-                            .frame(width: width, height: height)
-                            .frame(maxWidth: width == nil ? .infinity : nil)
                             .padding(.horizontal, 24)
                             .padding(.vertical, 12)
+                            .frame(width: width, height: height)
+                            .frame(maxWidth: width == nil ? .infinity : nil)
                             .background(Color.clear) // Transparent background for secondary
                             .overlay(
                                 RoundedRectangle(cornerRadius: CGFloat(borderRadius))
@@ -143,6 +144,7 @@ struct CTABlockRenderer: BlockRenderer {
                             )
                             .cornerRadius(CGFloat(borderRadius))
                     }
+                    .buttonStyle(PlainButtonStyle()) // Remove default button styling
                 }
             }
             .padding(.horizontal, Spacing.md.value)
