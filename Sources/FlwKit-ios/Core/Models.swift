@@ -187,7 +187,7 @@ public struct Block: Codable {
         imageUrl = try container.decodeIfPresent(String.self, forKey: .imageUrl)
         videoUrl = try container.decodeIfPresent(String.self, forKey: .videoUrl)
         aspect = try container.decodeIfPresent(String.self, forKey: .aspect)
-        align = try container.decodeIfPresent(String.self, forKey: .align)
+        // Note: align is already decoded above (shared between header and media blocks)
         width = try container.decodeIfPresent(MediaWidth.self, forKey: .width)
         padding = try container.decodeIfPresent(MediaPadding.self, forKey: .padding)
         margin = try container.decodeIfPresent(MediaMargin.self, forKey: .margin)
