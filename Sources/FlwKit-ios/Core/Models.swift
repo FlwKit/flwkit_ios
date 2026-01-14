@@ -269,18 +269,21 @@ public struct Block: Codable {
         }
         
         // Try to decode iconSize - support both camelCase and snake_case, and handle String conversion
-        iconSize = nil // Initialize to nil
-        if let iconSizeValue = try? container.decodeIfPresent(Double.self, forKey: .iconSize) {
-            iconSize = iconSizeValue
-        } else if let iconSizeSnake = try? container.decodeIfPresent(Double.self, forKey: .iconSizeSnake) {
-            iconSize = iconSizeSnake
-        } else if let iconSizeString = try? container.decodeIfPresent(String.self, forKey: .iconSize),
-                  let iconSizeDouble = Double(iconSizeString) {
-            iconSize = iconSizeDouble
-        } else if let iconSizeStringSnake = try? container.decodeIfPresent(String.self, forKey: .iconSizeSnake),
-                  let iconSizeDouble = Double(iconSizeStringSnake) {
-            iconSize = iconSizeDouble
-        }
+        let decodedIconSize: Double? = {
+            if let iconSizeValue = try? container.decodeIfPresent(Double.self, forKey: .iconSize) {
+                return iconSizeValue
+            } else if let iconSizeSnake = try? container.decodeIfPresent(Double.self, forKey: .iconSizeSnake) {
+                return iconSizeSnake
+            } else if let iconSizeString = try? container.decodeIfPresent(String.self, forKey: .iconSize),
+                      let iconSizeDouble = Double(iconSizeString) {
+                return iconSizeDouble
+            } else if let iconSizeStringSnake = try? container.decodeIfPresent(String.self, forKey: .iconSizeSnake),
+                      let iconSizeDouble = Double(iconSizeStringSnake) {
+                return iconSizeDouble
+            }
+            return nil
+        }()
+        iconSize = decodedIconSize
         
         quote = try container.decodeIfPresent(String.self, forKey: .quote)
         author = try container.decodeIfPresent(String.self, forKey: .author)
