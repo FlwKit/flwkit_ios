@@ -14,7 +14,7 @@ struct MediaBlockRenderer: BlockRenderer {
         
         // Check if URL string exists and is not empty
         guard let urlString = imageUrlString, !urlString.isEmpty, let url = URL(string: urlString) else {
-            return AnyView(
+        return AnyView(
                 MediaPlaceholderView(
                     message: "Image not available",
                     borderRadius: block.borderRadius.map { CGFloat($0) },
@@ -90,31 +90,31 @@ struct MediaBlockRenderer: BlockRenderer {
         
         // Image view
         let imageView = AsyncImage(url: url) { phase in
-            switch phase {
-            case .empty:
-                ProgressView()
+                        switch phase {
+                        case .empty:
+                            ProgressView()
                     .applyWidth(widthMode)
                     .frame(height: height ?? 200)
                     .applyAspectRatio(aspectRatio)
-            case .success(let image):
-                image
-                    .resizable()
+                        case .success(let image):
+                            image
+                                .resizable()
                     .applyAspectRatio(aspectRatio)
                     .applyWidth(widthMode)
                     .frame(height: height)
                     .cornerRadius(borderRadius)
                     .clipped()
-            case .failure:
+                        case .failure:
                 MediaPlaceholderView(
                     message: "Image failed to load",
                     borderRadius: borderRadius,
                     padding: block.padding,
                     margin: block.margin
                 )
-            @unknown default:
-                EmptyView()
-            }
-        }
+                        @unknown default:
+                            EmptyView()
+                        }
+                    }
         .padding(.vertical, paddingVertical)
         .padding(.horizontal, paddingHorizontal)
         .padding(.top, marginTop)
@@ -127,7 +127,7 @@ struct MediaBlockRenderer: BlockRenderer {
         if case .fullWidth = widthMode {
             // Full width - no need for alignment container
             return AnyView(imageView)
-        } else {
+                } else {
             // Use HStack for alignment
             return AnyView(
                 HStack(alignment: .center, spacing: 0) {

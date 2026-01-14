@@ -185,7 +185,6 @@ struct TextInputBlockView: View {
                 borderColor: borderColor,
                 borderWidth: CGFloat(borderWidth),
                 borderRadius: CGFloat(borderRadius),
-                isFocused: $isFocused,
                 onTextChange: { newValue in
                     onAnswer(blockKey, newValue)
                 }
@@ -211,7 +210,6 @@ struct CustomTextField: UIViewRepresentable {
     let borderColor: Color
     let borderWidth: CGFloat
     let borderRadius: CGFloat
-    @Binding var isFocused: Bool
     let onTextChange: (String) -> Void
     
     func makeUIView(context: Context) -> UITextField {
@@ -291,13 +289,6 @@ struct CustomTextField: UIViewRepresentable {
         uiView.layer.borderColor = UIColor(borderColor).cgColor
         uiView.layer.borderWidth = borderWidth
         uiView.layer.cornerRadius = borderRadius
-        
-        // Update focus state
-        if isFocused && !uiView.isFirstResponder {
-            uiView.becomeFirstResponder()
-        } else if !isFocused && uiView.isFirstResponder {
-            uiView.resignFirstResponder()
-        }
     }
     
     func makeCoordinator() -> Coordinator {
@@ -317,11 +308,11 @@ struct CustomTextField: UIViewRepresentable {
         }
         
         func textFieldDidBeginEditing(_ textField: UITextField) {
-            parent.isFocused = true
+            // Focus handling is done internally by UITextField
         }
         
         func textFieldDidEndEditing(_ textField: UITextField) {
-            parent.isFocused = false
+            // Focus handling is done internally by UITextField
         }
         
         func textFieldShouldReturn(_ textField: UITextField) -> Bool {
@@ -330,3 +321,4 @@ struct CustomTextField: UIViewRepresentable {
         }
     }
 }
+
