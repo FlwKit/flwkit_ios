@@ -254,13 +254,22 @@ public struct Block: Codable {
         sticky = try container.decodeIfPresent(Bool.self, forKey: .sticky)
         size = try container.decodeIfPresent(String.self, forKey: .size)
         items = try container.decodeIfPresent([String].self, forKey: .items)
-        icon = try container.decodeIfPresent(String.self, forKey: .icon)
+        
+        // Decode icon properties with maximum flexibility - handle all possible formats and types
+        // Use try? to gracefully handle any decoding errors
+        icon = try? container.decodeIfPresent(String.self, forKey: .icon)
         
         // Try to decode iconColor - support both camelCase and snake_case
-        iconColor = (try? container.decodeIfPresent(String.self, forKey: .iconColor)) ??
-                    (try? container.decodeIfPresent(String.self, forKey: .iconColorSnake))
+        if let iconColorCamel = try? container.decodeIfPresent(String.self, forKey: .iconColor) {
+            iconColor = iconColorCamel
+        } else if let iconColorSnake = try? container.decodeIfPresent(String.self, forKey: .iconColorSnake) {
+            iconColor = iconColorSnake
+        } else {
+            iconColor = nil
+        }
         
         // Try to decode iconSize - support both camelCase and snake_case, and handle String conversion
+        iconSize = nil // Initialize to nil
         if let iconSizeValue = try? container.decodeIfPresent(Double.self, forKey: .iconSize) {
             iconSize = iconSizeValue
         } else if let iconSizeSnake = try? container.decodeIfPresent(Double.self, forKey: .iconSizeSnake) {
@@ -268,8 +277,9 @@ public struct Block: Codable {
         } else if let iconSizeString = try? container.decodeIfPresent(String.self, forKey: .iconSize),
                   let iconSizeDouble = Double(iconSizeString) {
             iconSize = iconSizeDouble
-        } else {
-            iconSize = nil
+        } else if let iconSizeStringSnake = try? container.decodeIfPresent(String.self, forKey: .iconSizeSnake),
+                  let iconSizeDouble = Double(iconSizeStringSnake) {
+            iconSize = iconSizeDouble
         }
         
         quote = try container.decodeIfPresent(String.self, forKey: .quote)
