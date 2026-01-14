@@ -117,6 +117,17 @@ public struct Block: Codable {
     public let placeholder: String?
     public let inputType: String?
     public let required: Bool?
+    // Note: Typography properties (color, opacity, fontWeight, fontStyle, fontSize, align, spacing) are shared with header blocks (declared above)
+    // Background properties
+    public let backgroundColor: String? // Hex color (e.g., "#1f2937")
+    public let backgroundOpacity: Double? // 0-100 (percentage)
+    // Size properties - width can be reused from MediaWidth (number or "auto"), height is separate for text inputs
+    public let inputHeight: Double? // Height in pixels for text inputs (to avoid conflict with spacer height)
+    // Border properties
+    public let borderColor: String? // Hex color (e.g., "#6b7280")
+    public let borderOpacity: Double? // 0-100 (percentage)
+    public let borderWidth: Double? // Border width in pixels
+    // Note: borderRadius is shared with media blocks (declared above)
     
     // Slider block
     public let min: Double?
@@ -156,6 +167,12 @@ public struct Block: Codable {
         case fontStyle = "fontStyle"
         case fontSize = "fontSize"
         case spacing
+        case backgroundColor = "backgroundColor"
+        case backgroundOpacity = "backgroundOpacity"
+        case borderColor = "borderColor"
+        case borderOpacity = "borderOpacity"
+        case borderWidth = "borderWidth"
+        case inputHeight = "height" // For text inputs, to avoid conflict with spacer height
         case options, multiple, placeholder
         case inputType = "input_type"
         case required, min, max, step
@@ -197,6 +214,13 @@ public struct Block: Codable {
         placeholder = try container.decodeIfPresent(String.self, forKey: .placeholder)
         inputType = try container.decodeIfPresent(String.self, forKey: .inputType)
         required = try container.decodeIfPresent(Bool.self, forKey: .required)
+        
+        // Text input styling properties
+        backgroundColor = try container.decodeIfPresent(String.self, forKey: .backgroundColor)
+        backgroundOpacity = try container.decodeIfPresent(Double.self, forKey: .backgroundOpacity)
+        borderColor = try container.decodeIfPresent(String.self, forKey: .borderColor)
+        borderOpacity = try container.decodeIfPresent(Double.self, forKey: .borderOpacity)
+        borderWidth = try container.decodeIfPresent(Double.self, forKey: .borderWidth)
         min = try container.decodeIfPresent(Double.self, forKey: .min)
         max = try container.decodeIfPresent(Double.self, forKey: .max)
         step = try container.decodeIfPresent(Double.self, forKey: .step)
@@ -209,14 +233,20 @@ public struct Block: Codable {
         author = try container.decodeIfPresent(String.self, forKey: .author)
         text = try container.decodeIfPresent(String.self, forKey: .text)
         
-        // Handle "height" - both media and spacer blocks use it as Double
+        // Handle "height" - media, spacer, and text_input blocks use it as Double
         let heightValue = try container.decodeIfPresent(Double.self, forKey: .height)
         if type == "media" {
             mediaHeight = heightValue
             height = nil // Not used for media blocks
+            inputHeight = nil
+        } else if type == "text_input" {
+            inputHeight = heightValue
+            mediaHeight = nil
+            height = nil // Not used for text input blocks
         } else {
             // For spacer and other blocks
             mediaHeight = nil
+            inputHeight = nil
             height = heightValue
         }
     }
@@ -241,7 +271,6 @@ public struct Block: Codable {
         try container.encodeIfPresent(imageUrl, forKey: .imageUrl)
         try container.encodeIfPresent(videoUrl, forKey: .videoUrl)
         try container.encodeIfPresent(aspect, forKey: .aspect)
-        try container.encodeIfPresent(align, forKey: .align)
         try container.encodeIfPresent(width, forKey: .width)
         try container.encodeIfPresent(padding, forKey: .padding)
         try container.encodeIfPresent(margin, forKey: .margin)
@@ -251,6 +280,11 @@ public struct Block: Codable {
         try container.encodeIfPresent(placeholder, forKey: .placeholder)
         try container.encodeIfPresent(inputType, forKey: .inputType)
         try container.encodeIfPresent(required, forKey: .required)
+        try container.encodeIfPresent(backgroundColor, forKey: .backgroundColor)
+        try container.encodeIfPresent(backgroundOpacity, forKey: .backgroundOpacity)
+        try container.encodeIfPresent(borderColor, forKey: .borderColor)
+        try container.encodeIfPresent(borderOpacity, forKey: .borderOpacity)
+        try container.encodeIfPresent(borderWidth, forKey: .borderWidth)
         try container.encodeIfPresent(min, forKey: .min)
         try container.encodeIfPresent(max, forKey: .max)
         try container.encodeIfPresent(step, forKey: .step)
@@ -266,6 +300,8 @@ public struct Block: Codable {
         // Encode height based on block type
         if type == "media" {
             try container.encodeIfPresent(mediaHeight, forKey: .height)
+        } else if type == "text_input" {
+            try container.encodeIfPresent(inputHeight, forKey: .height)
         } else {
             try container.encodeIfPresent(height, forKey: .height)
         }
