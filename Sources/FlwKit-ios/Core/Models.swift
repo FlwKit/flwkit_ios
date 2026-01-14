@@ -172,7 +172,7 @@ public struct Block: Codable {
         case borderColor = "borderColor"
         case borderOpacity = "borderOpacity"
         case borderWidth = "borderWidth"
-        case inputHeight = "height" // For text inputs, to avoid conflict with spacer height
+        // Note: height is already declared above and used for media, spacer, and text_input blocks
         case options, multiple, placeholder
         case inputType = "input_type"
         case required, min, max, step
