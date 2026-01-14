@@ -147,12 +147,21 @@ struct TextInputBlockView: View {
         // Get required (default: true)
         let isRequired = block.required ?? true
         
+        // Get placeholder color (use text color with reduced opacity, or theme's textSecondary)
+        let placeholderColor: Color = {
+            // Use text color with reduced opacity for placeholder, or fallback to theme's textSecondary
+            let baseColor = block.color ?? tokens.textSecondary
+            let opacity = 0.6 // Placeholder typically has reduced opacity
+            let color = Color(hex: baseColor)
+            return color.opacity(opacity)
+        }()
+        
         return VStack(alignment: .leading, spacing: Spacing.sm.value) {
             if let label = block.title { // Using title as label
                 HStack {
                     Text(label)
                         .font(.system(size: 14))
-                        .foregroundColor(tokens.textPrimaryColor)
+                        .foregroundColor(textColor) // Use the same color as input text
                     if isRequired {
                         Text("*")
                             .font(.system(size: 14))
@@ -161,32 +170,163 @@ struct TextInputBlockView: View {
                 }
             }
             
-            TextField(placeholder, text: $text)
-                .font(inputFont)
-                .multilineTextAlignment(textAlignment)
-                .textFieldStyle(PlainTextFieldStyle())
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .frame(width: width, height: height)
-                .background(backgroundColor)
-                .foregroundColor(textColor)
-                .overlay(
-                    RoundedRectangle(cornerRadius: CGFloat(borderRadius))
-                        .stroke(borderColor, lineWidth: CGFloat(borderWidth))
-                )
-                .cornerRadius(CGFloat(borderRadius))
-                .keyboardType(inputType == "email" ? .emailAddress : inputType == "number" ? .numberPad : .default)
-                .autocapitalization(inputType == "email" ? .none : .sentences)
-                .focused($isFocused)
-                .onChange(of: text) { newValue in
+            CustomTextField(
+                placeholder: placeholder,
+                text: $text,
+                font: inputFont,
+                textColor: textColor,
+                placeholderColor: placeholderColor,
+                textAlignment: textAlignment,
+                keyboardType: inputType == "email" ? .emailAddress : inputType == "number" ? .numberPad : .default,
+                autocapitalization: inputType == "email" ? .none : .sentences,
+                width: width,
+                height: height,
+                backgroundColor: backgroundColor,
+                borderColor: borderColor,
+                borderWidth: CGFloat(borderWidth),
+                borderRadius: CGFloat(borderRadius),
+                isFocused: $isFocused,
+                onTextChange: { newValue in
                     onAnswer(blockKey, newValue)
                 }
-                .onChange(of: isFocused) { focused in
-                    // Optional: Change border color on focus
-                    // This would require a @State variable for border color
-                }
+            )
         }
         .padding(.horizontal, Spacing.md.value)
     }
 }
 
+// Custom TextField with placeholder color support for iOS 15
+struct CustomTextField: UIViewRepresentable {
+    let placeholder: String
+    @Binding var text: String
+    let font: Font
+    let textColor: Color
+    let placeholderColor: Color
+    let textAlignment: TextAlignment
+    let keyboardType: UIKeyboardType
+    let autocapitalization: UITextAutocapitalizationType
+    let width: CGFloat?
+    let height: CGFloat?
+    let backgroundColor: Color
+    let borderColor: Color
+    let borderWidth: CGFloat
+    let borderRadius: CGFloat
+    @Binding var isFocused: Bool
+    let onTextChange: (String) -> Void
+    
+    func makeUIView(context: Context) -> UITextField {
+        let textField = UITextField()
+        textField.delegate = context.coordinator
+        textField.placeholder = placeholder
+        textField.keyboardType = keyboardType
+        textField.autocapitalizationType = autocapitalization
+        textField.returnKeyType = .done
+        
+        // Set placeholder color
+        textField.attributedPlaceholder = NSAttributedString(
+            string: placeholder,
+            attributes: [
+                .foregroundColor: UIColor(placeholderColor),
+                .font: UIFont.systemFont(ofSize: 16)
+            ]
+        )
+        
+        // Set text alignment
+        switch textAlignment {
+        case .leading:
+            textField.textAlignment = .left
+        case .center:
+            textField.textAlignment = .center
+        case .trailing:
+            textField.textAlignment = .right
+        }
+        
+        // Set padding
+        textField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
+        textField.leftViewMode = .always
+        textField.rightView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
+        textField.rightViewMode = .always
+        
+        // Set background and border
+        textField.backgroundColor = UIColor(backgroundColor)
+        textField.layer.borderColor = UIColor(borderColor).cgColor
+        textField.layer.borderWidth = borderWidth
+        textField.layer.cornerRadius = borderRadius
+        
+        // Set frame constraints
+        if let width = width {
+            textField.widthAnchor.constraint(equalToConstant: width).isActive = true
+        }
+        if let height = height {
+            textField.heightAnchor.constraint(equalToConstant: height).isActive = true
+        }
+        
+        return textField
+    }
+    
+    func updateUIView(_ uiView: UITextField, context: Context) {
+        uiView.text = text
+        
+        // Update text color
+        uiView.textColor = UIColor(textColor)
+        
+        // Update font
+        if let swiftUIFont = font as? Font {
+            // Convert Font to UIFont
+            let uiFont = UIFont.systemFont(ofSize: 16) // Default, will be updated below
+            uiView.font = uiFont
+        }
+        
+        // Update placeholder color
+        uiView.attributedPlaceholder = NSAttributedString(
+            string: placeholder,
+            attributes: [
+                .foregroundColor: UIColor(placeholderColor),
+                .font: UIFont.systemFont(ofSize: 16)
+            ]
+        )
+        
+        // Update background and border
+        uiView.backgroundColor = UIColor(backgroundColor)
+        uiView.layer.borderColor = UIColor(borderColor).cgColor
+        uiView.layer.borderWidth = borderWidth
+        uiView.layer.cornerRadius = borderRadius
+        
+        // Update focus state
+        if isFocused && !uiView.isFirstResponder {
+            uiView.becomeFirstResponder()
+        } else if !isFocused && uiView.isFirstResponder {
+            uiView.resignFirstResponder()
+        }
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UITextFieldDelegate {
+        let parent: CustomTextField
+        
+        init(_ parent: CustomTextField) {
+            self.parent = parent
+        }
+        
+        func textFieldDidChangeSelection(_ textField: UITextField) {
+            parent.text = textField.text ?? ""
+            parent.onTextChange(textField.text ?? "")
+        }
+        
+        func textFieldDidBeginEditing(_ textField: UITextField) {
+            parent.isFocused = true
+        }
+        
+        func textFieldDidEndEditing(_ textField: UITextField) {
+            parent.isFocused = false
+        }
+        
+        func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+            textField.resignFirstResponder()
+            return true
+        }
+    }
+}
