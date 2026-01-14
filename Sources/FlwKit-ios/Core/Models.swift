@@ -89,6 +89,13 @@ public struct Block: Codable {
     // Header block
     public let title: String?
     public let subtitle: String?
+    public let align: String? // 'left' | 'center' | 'right' (default: 'left')
+    public let color: String? // Hex color (e.g., "#ffffff") - uses theme's textPrimary if undefined
+    public let opacity: Double? // Opacity percentage 0-100 (default: 100)
+    public let fontWeight: String? // 'normal' | 'bold' (default: 'bold')
+    public let fontStyle: String? // 'normal' | 'italic' (default: 'normal')
+    public let fontSize: Double? // Font size in pixels (default: 24)
+    public let spacing: Double? // Letter spacing in pixels (default: undefined)
     
     // Media block
     public let url: String? // Resolved URL from backend (replaces imageUrl)
@@ -144,6 +151,11 @@ public struct Block: Codable {
         case height // Used by both media and spacer blocks (as Double)
         case padding, margin
         case borderRadius = "borderRadius"
+        case color, opacity
+        case fontWeight = "fontWeight"
+        case fontStyle = "fontStyle"
+        case fontSize = "fontSize"
+        case spacing
         case options, multiple, placeholder
         case inputType = "input_type"
         case required, min, max, step
@@ -160,6 +172,15 @@ public struct Block: Codable {
         style = try container.decodeIfPresent(String.self, forKey: .style)
         title = try container.decodeIfPresent(String.self, forKey: .title)
         subtitle = try container.decodeIfPresent(String.self, forKey: .subtitle)
+        
+        // Header typography properties
+        align = try container.decodeIfPresent(String.self, forKey: .align)
+        color = try container.decodeIfPresent(String.self, forKey: .color)
+        opacity = try container.decodeIfPresent(Double.self, forKey: .opacity)
+        fontWeight = try container.decodeIfPresent(String.self, forKey: .fontWeight)
+        fontStyle = try container.decodeIfPresent(String.self, forKey: .fontStyle)
+        fontSize = try container.decodeIfPresent(Double.self, forKey: .fontSize)
+        spacing = try container.decodeIfPresent(Double.self, forKey: .spacing)
         
         // Try to decode URL - check multiple possible field names
         url = try container.decodeIfPresent(String.self, forKey: .url)
@@ -209,6 +230,13 @@ public struct Block: Codable {
         try container.encodeIfPresent(style, forKey: .style)
         try container.encodeIfPresent(title, forKey: .title)
         try container.encodeIfPresent(subtitle, forKey: .subtitle)
+        try container.encodeIfPresent(align, forKey: .align)
+        try container.encodeIfPresent(color, forKey: .color)
+        try container.encodeIfPresent(opacity, forKey: .opacity)
+        try container.encodeIfPresent(fontWeight, forKey: .fontWeight)
+        try container.encodeIfPresent(fontStyle, forKey: .fontStyle)
+        try container.encodeIfPresent(fontSize, forKey: .fontSize)
+        try container.encodeIfPresent(spacing, forKey: .spacing)
         try container.encodeIfPresent(url, forKey: .url)
         try container.encodeIfPresent(imageUrl, forKey: .imageUrl)
         try container.encodeIfPresent(videoUrl, forKey: .videoUrl)
