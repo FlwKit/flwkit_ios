@@ -189,6 +189,7 @@ struct TextInputBlockView: View {
                     onAnswer(blockKey, newValue)
                 }
             )
+            .frame(width: width, height: height)
         }
         .padding(.horizontal, Spacing.md.value)
     }
@@ -214,6 +215,7 @@ struct CustomTextField: UIViewRepresentable {
     
     func makeUIView(context: Context) -> UITextField {
         let textField = UITextField()
+        textField.translatesAutoresizingMaskIntoConstraints = false
         textField.delegate = context.coordinator
         textField.placeholder = placeholder
         textField.keyboardType = keyboardType
@@ -254,11 +256,13 @@ struct CustomTextField: UIViewRepresentable {
         // Set frame constraints and store them in coordinator
         if let width = width {
             let widthConstraint = textField.widthAnchor.constraint(equalToConstant: width)
+            widthConstraint.priority = UILayoutPriority(1000)
             widthConstraint.isActive = true
             context.coordinator.widthConstraint = widthConstraint
         }
         if let height = height {
             let heightConstraint = textField.heightAnchor.constraint(equalToConstant: height)
+            heightConstraint.priority = UILayoutPriority(1000) // High priority to override intrinsic content size
             heightConstraint.isActive = true
             context.coordinator.heightConstraint = heightConstraint
         }
@@ -275,13 +279,22 @@ struct CustomTextField: UIViewRepresentable {
         }
         
         // Update height constraint if needed
-        if let height = height, let heightConstraint = context.coordinator.heightConstraint {
-            heightConstraint.constant = height
-        } else if let height = height, context.coordinator.heightConstraint == nil {
-            // Create height constraint if it doesn't exist
-            let heightConstraint = uiView.heightAnchor.constraint(equalToConstant: height)
-            heightConstraint.isActive = true
-            context.coordinator.heightConstraint = heightConstraint
+        if let height = height {
+            if let heightConstraint = context.coordinator.heightConstraint {
+                heightConstraint.constant = height
+            } else {
+                // Create height constraint if it doesn't exist
+                let heightConstraint = uiView.heightAnchor.constraint(equalToConstant: height)
+                heightConstraint.priority = UILayoutPriority(1000) // High priority to override intrinsic content size
+                heightConstraint.isActive = true
+                context.coordinator.heightConstraint = heightConstraint
+            }
+        } else {
+            // Remove height constraint if height is nil
+            if let heightConstraint = context.coordinator.heightConstraint {
+                heightConstraint.isActive = false
+                context.coordinator.heightConstraint = nil
+            }
         }
         
         // Update text color
