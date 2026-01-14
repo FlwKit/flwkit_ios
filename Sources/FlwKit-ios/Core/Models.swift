@@ -195,7 +195,9 @@ public struct Block: Codable {
         case required, min, max, step
         case defaultValue = "default_value"
         case primary, secondary, sticky, size, items, quote, author, text
-        case icon, iconColor = "iconColor", iconSize = "iconSize"
+        case icon
+        case iconColor = "icon_color"
+        case iconSize = "icon_size"
     }
     
     // Custom decoding to handle "height" for both media and spacer blocks
