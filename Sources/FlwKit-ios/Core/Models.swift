@@ -196,8 +196,10 @@ public struct Block: Codable {
         case defaultValue = "default_value"
         case primary, secondary, sticky, size, items, quote, author, text
         case icon
-        case iconColor = "icon_color"
-        case iconSize = "icon_size"
+        case iconColor = "iconColor"
+        case iconColorSnake = "icon_color" // Support both formats
+        case iconSize = "iconSize"
+        case iconSizeSnake = "icon_size" // Support both formats
     }
     
     // Custom decoding to handle "height" for both media and spacer blocks
@@ -253,8 +255,23 @@ public struct Block: Codable {
         size = try container.decodeIfPresent(String.self, forKey: .size)
         items = try container.decodeIfPresent([String].self, forKey: .items)
         icon = try container.decodeIfPresent(String.self, forKey: .icon)
-        iconColor = try container.decodeIfPresent(String.self, forKey: .iconColor)
-        iconSize = try container.decodeIfPresent(Double.self, forKey: .iconSize)
+        
+        // Try to decode iconColor - support both camelCase and snake_case
+        iconColor = try container.decodeIfPresent(String.self, forKey: .iconColor) ?? 
+                    try container.decodeIfPresent(String.self, forKey: .iconColorSnake)
+        
+        // Try to decode iconSize - support both camelCase and snake_case, and handle String conversion
+        if let iconSizeValue = try? container.decodeIfPresent(Double.self, forKey: .iconSize) {
+            iconSize = iconSizeValue
+        } else if let iconSizeSnake = try? container.decodeIfPresent(Double.self, forKey: .iconSizeSnake) {
+            iconSize = iconSizeSnake
+        } else if let iconSizeString = try? container.decodeIfPresent(String.self, forKey: .iconSize),
+                  let iconSizeDouble = Double(iconSizeString) {
+            iconSize = iconSizeDouble
+        } else {
+            iconSize = nil
+        }
+        
         quote = try container.decodeIfPresent(String.self, forKey: .quote)
         author = try container.decodeIfPresent(String.self, forKey: .author)
         text = try container.decodeIfPresent(String.self, forKey: .text)
