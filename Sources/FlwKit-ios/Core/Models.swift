@@ -169,6 +169,10 @@ public struct Block: Codable {
     // Footer
     public let text: String?
     
+    // Progress bar
+    public let fillColor: String? // Hex color for filled portion (e.g., "#3DDC97")
+    public let fillOpacity: Double? // 0-100 (percentage) for filled portion
+    
     enum CodingKeys: String, CodingKey {
         case type, key, style, title, subtitle
         case url
@@ -196,6 +200,8 @@ public struct Block: Codable {
         case required, min, max, step
         case defaultValue = "default_value"
         case primary, secondary, sticky, size, items, quote, author, meta, text
+        case fillColor = "fillColor"
+        case fillOpacity = "fillOpacity"
         case icon
         case iconColor = "iconColor"
         case iconColorSnake = "icon_color" // Support both formats
@@ -290,6 +296,8 @@ public struct Block: Codable {
         author = try container.decodeIfPresent(String.self, forKey: .author)
         meta = try container.decodeIfPresent(String.self, forKey: .meta)
         text = try container.decodeIfPresent(String.self, forKey: .text)
+        fillColor = try container.decodeIfPresent(String.self, forKey: .fillColor)
+        fillOpacity = try container.decodeIfPresent(Double.self, forKey: .fillOpacity)
         
         // Handle "height" - media, spacer, text_input, cta, and choice blocks use it as Double
         let heightValue = try container.decodeIfPresent(Double.self, forKey: .height)
@@ -379,6 +387,8 @@ public struct Block: Codable {
         try container.encodeIfPresent(author, forKey: .author)
         try container.encodeIfPresent(meta, forKey: .meta)
         try container.encodeIfPresent(text, forKey: .text)
+        try container.encodeIfPresent(fillColor, forKey: .fillColor)
+        try container.encodeIfPresent(fillOpacity, forKey: .fillOpacity)
         
         // Encode height based on block type
         if type == "media" {
@@ -547,13 +557,17 @@ public struct FlowState: Codable {
     public var attributes: [String: AnyCodable]
     public var flowKey: String
     public var userId: String?
+    public var totalScreens: Int? // Total number of screens in the flow (for progress calculation)
+    public var currentScreenIndex: Int? // Current screen index (0-based) for progress calculation
     
-    public init(flowKey: String, userId: String? = nil, currentScreenId: String? = nil, answers: [String: AnyCodable] = [:], attributes: [String: AnyCodable] = [:]) {
+    public init(flowKey: String, userId: String? = nil, currentScreenId: String? = nil, answers: [String: AnyCodable] = [:], attributes: [String: AnyCodable] = [:], totalScreens: Int? = nil, currentScreenIndex: Int? = nil) {
         self.flowKey = flowKey
         self.userId = userId
         self.currentScreenId = currentScreenId
         self.answers = answers
         self.attributes = attributes
+        self.totalScreens = totalScreens
+        self.currentScreenIndex = currentScreenIndex
     }
 }
 

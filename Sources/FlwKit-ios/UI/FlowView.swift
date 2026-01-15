@@ -23,11 +23,13 @@ struct FlowView: View {
             flowKey: flowKey,
             userId: userId,
             answers: [:],
-            attributes: attributes.mapValues { AnyCodable($0) }
+            attributes: attributes.mapValues { AnyCodable($0) },
+            totalScreens: flow.screens.count
         )
         
-        // Set attributes
+        // Set attributes and totalScreens
         initialState.attributes = attributes.mapValues { AnyCodable($0) }
+        initialState.totalScreens = flow.screens.count
         
         _currentState = State(initialValue: initialState)
         
@@ -35,8 +37,10 @@ struct FlowView: View {
         if let currentScreenId = initialState.currentScreenId,
            let index = flow.screens.firstIndex(where: { $0.id == currentScreenId }) {
             _currentScreenIndex = State(initialValue: index)
+            initialState.currentScreenIndex = index
         } else if let entryIndex = flow.screens.firstIndex(where: { $0.id == flow.entryScreenId }) {
             _currentScreenIndex = State(initialValue: entryIndex)
+            initialState.currentScreenIndex = entryIndex
         }
         
         self.onComplete = onComplete
@@ -119,6 +123,7 @@ struct FlowView: View {
         } else if currentScreenIndex < flow.screens.count - 1 {
             currentScreenIndex += 1
             currentState.currentScreenId = flow.screens[currentScreenIndex].id
+            currentState.currentScreenIndex = currentScreenIndex
             saveState()
         } else {
             handleFlowComplete()
@@ -129,6 +134,7 @@ struct FlowView: View {
         if currentScreenIndex > 0 {
             currentScreenIndex -= 1
             currentState.currentScreenId = flow.screens[currentScreenIndex].id
+            currentState.currentScreenIndex = currentScreenIndex
             saveState()
         }
     }
@@ -137,6 +143,7 @@ struct FlowView: View {
         if let index = flow.screens.firstIndex(where: { $0.id == target }) {
             currentScreenIndex = index
             currentState.currentScreenId = flow.screens[index].id
+            currentState.currentScreenIndex = index
             saveState()
         }
     }

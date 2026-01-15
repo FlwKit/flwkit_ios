@@ -35,6 +35,7 @@ class BlockRendererRegistry {
         register("benefits_list", renderer: BenefitsListBlockRenderer())
         register("testimonial", renderer: TestimonialBlockRenderer())
         register("footer", renderer: FooterBlockRenderer())
+        register("progress_bar", renderer: ProgressBarBlockRenderer())
     }
 }
 
