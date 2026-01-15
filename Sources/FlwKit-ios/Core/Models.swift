@@ -164,6 +164,7 @@ public struct Block: Codable {
     // Testimonial
     public let quote: String?
     public let author: String?
+    public let meta: String?
     
     // Footer
     public let text: String?
@@ -194,7 +195,7 @@ public struct Block: Codable {
         case inputType = "input_type"
         case required, min, max, step
         case defaultValue = "default_value"
-        case primary, secondary, sticky, size, items, quote, author, text
+        case primary, secondary, sticky, size, items, quote, author, meta, text
         case icon
         case iconColor = "iconColor"
         case iconColorSnake = "icon_color" // Support both formats
@@ -287,6 +288,7 @@ public struct Block: Codable {
         
         quote = try container.decodeIfPresent(String.self, forKey: .quote)
         author = try container.decodeIfPresent(String.self, forKey: .author)
+        meta = try container.decodeIfPresent(String.self, forKey: .meta)
         text = try container.decodeIfPresent(String.self, forKey: .text)
         
         // Handle "height" - media, spacer, text_input, cta, and choice blocks use it as Double
@@ -375,6 +377,7 @@ public struct Block: Codable {
         try container.encodeIfPresent(iconSize, forKey: .iconSize)
         try container.encodeIfPresent(quote, forKey: .quote)
         try container.encodeIfPresent(author, forKey: .author)
+        try container.encodeIfPresent(meta, forKey: .meta)
         try container.encodeIfPresent(text, forKey: .text)
         
         // Encode height based on block type
@@ -398,19 +401,23 @@ public struct Block: Codable {
 public enum MediaWidth: Codable {
     case auto
     case fixed(Double)
+    case percentage(String) // For percentage strings like "100%", "50%"
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         if let string = try? container.decode(String.self) {
             if string == "auto" {
                 self = .auto
+            } else if string.hasSuffix("%") {
+                // Percentage string like "100%", "50%"
+                self = .percentage(string)
             } else {
                 throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid width string: \(string)")
             }
         } else if let number = try? container.decode(Double.self) {
             self = .fixed(number)
         } else {
-            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Width must be a number or 'auto' string")
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Width must be a number, 'auto' string, or percentage string")
         }
     }
     
@@ -420,6 +427,8 @@ public enum MediaWidth: Codable {
         case .auto:
             try container.encode("auto")
         case .fixed(let value):
+            try container.encode(value)
+        case .percentage(let value):
             try container.encode(value)
         }
     }
