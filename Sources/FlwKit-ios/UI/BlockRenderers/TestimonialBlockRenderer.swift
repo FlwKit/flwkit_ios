@@ -220,6 +220,7 @@ struct TestimonialBlockRenderer: BlockRenderer {
             return AnyView(
                 testimonialContent
                     .frame(maxWidth: .infinity)
+                    .padding(.horizontal, Spacing.md.value)
             )
         case .fixed(let width):
             // Fixed pixel width
@@ -227,6 +228,7 @@ struct TestimonialBlockRenderer: BlockRenderer {
                 testimonialContent
                     .frame(width: width)
                     .frame(maxWidth: .infinity, alignment: alignment == .leading ? .leading : (alignment == .center ? .center : .trailing))
+                    .padding(.horizontal, Spacing.md.value)
             )
         case .percentage(let percentage):
             // Percentage width - use GeometryReader
@@ -237,12 +239,14 @@ struct TestimonialBlockRenderer: BlockRenderer {
                         .frame(maxWidth: .infinity, alignment: alignment == .leading ? .leading : (alignment == .center ? .center : .trailing))
                 }
                 .frame(height: height) // Preserve height
+                .padding(.horizontal, Spacing.md.value)
             )
         case .auto:
             // Auto width - size to content
             return AnyView(
                 testimonialContent
                     .frame(maxWidth: .infinity, alignment: alignment == .leading ? .leading : (alignment == .center ? .center : .trailing))
+                    .padding(.horizontal, Spacing.md.value)
             )
         }
     }
