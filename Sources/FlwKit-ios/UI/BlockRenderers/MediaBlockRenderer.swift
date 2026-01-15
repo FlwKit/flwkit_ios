@@ -32,6 +32,9 @@ struct MediaBlockRenderer: BlockRenderer {
                     return .auto
                 case .fixed(let value):
                     return .fixed(CGFloat(value))
+                case .percentage:
+                    // For media blocks, percentage width is treated as full width
+                    return .fullWidth
                 }
             }
             return .fullWidth // Default to 100%

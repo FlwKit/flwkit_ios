@@ -134,6 +134,9 @@ struct ChoiceBlockView: View {
                     return nil // Auto width
                 case .fixed(let value):
                     return CGFloat(value)
+                case .percentage:
+                    // For choice blocks, percentage width is treated as full width
+                    return nil // Will be handled by frame(maxWidth: .infinity)
                 }
             }
             return nil // Default to full width (100%)

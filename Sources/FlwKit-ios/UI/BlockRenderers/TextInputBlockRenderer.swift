@@ -130,6 +130,9 @@ struct TextInputBlockView: View {
                     return nil // Auto width
                 case .fixed(let value):
                     return CGFloat(value)
+                case .percentage:
+                    // For text input blocks, percentage width is treated as full width
+                    return nil // Will be handled by frame(maxWidth: .infinity)
                 }
             }
             return nil // Default to full width (100%)
