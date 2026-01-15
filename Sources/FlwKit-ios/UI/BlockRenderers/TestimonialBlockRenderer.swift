@@ -24,9 +24,9 @@ struct TestimonialBlockRenderer: BlockRenderer {
             return opacity < 1.0 ? color.opacity(opacity) : color
         }()
         
-        // Get border color with opacity (default: theme's textMuted or textSecondary)
+        // Get border color with opacity (default: theme's textSecondary)
         let borderColor: Color = {
-            let baseColor = block.borderColor ?? tokens.textMuted ?? tokens.textSecondary
+            let baseColor = block.borderColor ?? tokens.textSecondary
             let opacity = block.borderOpacity != nil ? block.borderOpacity! / 100.0 : 1.0
             let color = Color(hex: baseColor)
             return opacity < 1.0 ? color.opacity(opacity) : color
