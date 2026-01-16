@@ -58,7 +58,7 @@ class Analytics {
     
     /// Get or create session ID
     private func getOrCreateSessionId() -> String {
-        if let stored = userDefaults.string(forKey: sessionIdKey) {
+        if let stored = userDefaults.string(forKey: sessionIdKey), !stored.isEmpty {
             return stored
         }
         
@@ -66,6 +66,7 @@ class Analytics {
         let randomString = UUID().uuidString.prefix(9).replacingOccurrences(of: "-", with: "")
         let newSessionId = "session_\(timestamp)_\(randomString)"
         userDefaults.set(newSessionId, forKey: sessionIdKey)
+        print("FlwKit Analytics: Created new session ID - \(newSessionId)")
         return newSessionId
     }
     
@@ -83,6 +84,11 @@ class Analytics {
     
     /// Track a generic event
     func trackEvent(eventType: String, eventData: [String: Any]) {
+        guard apiKey != nil else {
+            print("FlwKit Analytics: Cannot track event '\(eventType)' - API key not configured. Make sure FlwKit.configure() is called.")
+            return
+        }
+        
         let payload = AnalyticsEventPayload(
             flowId: flowId,
             flowVersionId: flowVersionId,
@@ -92,6 +98,8 @@ class Analytics {
             sessionId: sessionId ?? getOrCreateSessionId(),
             timestamp: Date()
         )
+        
+        print("FlwKit Analytics: Tracking event '\(eventType)'")
         
         queueLock.lock()
         eventQueue.append(payload)
@@ -225,43 +233,51 @@ class Analytics {
     
     private func sendEvents() {
         queueLock.lock()
-        let events = eventQueue
-        eventQueue.removeAll()
-        queueLock.unlock()
-        
-        guard !events.isEmpty, let apiKey = apiKey else {
-            // Re-add events to queue if we can't send
-            queueLock.lock()
-            eventQueue.insert(contentsOf: events, at: 0)
+        guard !eventQueue.isEmpty else {
             isProcessing = false
             queueLock.unlock()
-            saveQueue()
             return
         }
         
-        // Send events individually (as per backend spec)
-        for event in events {
-            sendEvent(event, apiKey: apiKey)
+        guard let apiKey = apiKey else {
+            print("FlwKit Analytics: API key not configured, events will be queued")
+            isProcessing = false
+            queueLock.unlock()
+            return
         }
         
-        // Mark processing as complete after all events are sent
-        queueLock.lock()
-        isProcessing = false
+        // Take first event from queue
+        let event = eventQueue.removeFirst()
         queueLock.unlock()
         
-        // Process remaining events if any were added during sending
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.processQueue()
+        // Send the event
+        sendEvent(event, apiKey: apiKey) { [weak self] success in
+            guard let self = self else { return }
+            
+            if !success {
+                // Re-add event to front of queue on failure
+                self.queueLock.lock()
+                self.eventQueue.insert(event, at: 0)
+                self.queueLock.unlock()
+                self.saveQueue()
+            }
+            
+            // Mark processing as complete and process next event
+            self.queueLock.lock()
+            self.isProcessing = false
+            self.queueLock.unlock()
+            
+            // Process remaining events
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.processQueue()
+            }
         }
     }
     
-    private func sendEvent(_ event: AnalyticsEventPayload, apiKey: String) {
+    private func sendEvent(_ event: AnalyticsEventPayload, apiKey: String, completion: @escaping (Bool) -> Void) {
         guard let url = URL(string: "\(baseURL)/sdk/v1/events") else {
-            // Re-add event to queue
-            queueLock.lock()
-            eventQueue.append(event)
-            queueLock.unlock()
-            saveQueue()
+            print("FlwKit Analytics: Invalid URL - \(baseURL)/sdk/v1/events")
+            completion(false)
             return
         }
         
@@ -274,52 +290,44 @@ class Analytics {
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
             request.httpBody = try encoder.encode(event)
+            
+            // Debug: Print event being sent
+            if let jsonData = try? JSONEncoder().encode(event),
+               let jsonString = String(data: jsonData, encoding: .utf8) {
+                print("FlwKit Analytics: Sending event - \(event.eventType)")
+                print("FlwKit Analytics: Event data - \(jsonString)")
+            }
         } catch {
-            print("FlwKit: Failed to encode analytics event - \(error)")
-            // Re-add event to queue
-            queueLock.lock()
-            eventQueue.append(event)
-            queueLock.unlock()
-            saveQueue()
+            print("FlwKit Analytics: Failed to encode analytics event - \(error)")
+            completion(false)
             return
         }
         
-        session.dataTask(with: request) { [weak self] data, response, error in
-            guard let self = self else { return }
-            
+        session.dataTask(with: request) { data, response, error in
             if let error = error {
-                print("FlwKit: Failed to send analytics event - \(error)")
-                // Re-add event to queue for retry
-                self.queueLock.lock()
-                self.eventQueue.append(event)
-                self.queueLock.unlock()
-                self.saveQueue()
+                print("FlwKit Analytics: Failed to send analytics event - \(error.localizedDescription)")
+                completion(false)
                 return
             }
             
             guard let httpResponse = response as? HTTPURLResponse else {
-                // Re-add event to queue
-                self.queueLock.lock()
-                self.eventQueue.append(event)
-                self.queueLock.unlock()
-                self.saveQueue()
+                print("FlwKit Analytics: Invalid response")
+                completion(false)
                 return
             }
             
             // Accept 201 Created as success (per backend spec)
-            guard httpResponse.statusCode == 201 || (200...299).contains(httpResponse.statusCode) else {
-                print("FlwKit: Failed to track event: HTTP \(httpResponse.statusCode)")
-                // Re-add event to queue for retry (except for 400 Bad Request which is a client error)
-                if httpResponse.statusCode != 400 {
-                    self.queueLock.lock()
-                    self.eventQueue.append(event)
-                    self.queueLock.unlock()
-                    self.saveQueue()
+            if httpResponse.statusCode == 201 || (200...299).contains(httpResponse.statusCode) {
+                print("FlwKit Analytics: Event '\(event.eventType)' sent successfully (HTTP \(httpResponse.statusCode))")
+                completion(true)
+            } else {
+                print("FlwKit Analytics: Failed to track event '\(event.eventType)': HTTP \(httpResponse.statusCode)")
+                if let data = data, let responseString = String(data: data, encoding: .utf8) {
+                    print("FlwKit Analytics: Response: \(responseString)")
                 }
-                return
+                // Don't retry 400 Bad Request (client error)
+                completion(httpResponse.statusCode != 400)
             }
-            
-            // Success - event was recorded
         }.resume()
     }
     
