@@ -288,11 +288,10 @@ class Analytics {
         
         do {
             let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601
             request.httpBody = try encoder.encode(event)
             
             // Debug: Print event being sent
-            if let jsonData = try? JSONEncoder().encode(event),
+            if let jsonData = try? encoder.encode(event),
                let jsonString = String(data: jsonData, encoding: .utf8) {
                 print("FlwKit Analytics: Sending event - \(event.eventType)")
                 print("FlwKit Analytics: Event data - \(jsonString)")
@@ -337,7 +336,6 @@ class Analytics {
         
         do {
             let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601
             let data = try encoder.encode(eventQueue)
             userDefaults.set(data, forKey: queueKey)
         } catch {
@@ -352,7 +350,6 @@ class Analytics {
         
         do {
             let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
             eventQueue = try decoder.decode([AnalyticsEventPayload].self, from: data)
         } catch {
             print("FlwKit: Failed to load analytics queue - \(error)")
@@ -369,7 +366,7 @@ struct AnalyticsEventPayload: Codable {
     let eventData: [String: AnyCodable]
     let userId: String?
     let sessionId: String
-    let timestamp: Date
+    let timestamp: String // ISO 8601 string format
     
     enum CodingKeys: String, CodingKey {
         case flowId
@@ -388,6 +385,10 @@ struct AnalyticsEventPayload: Codable {
         self.eventData = eventData.mapValues { AnyCodable($0) }
         self.userId = userId
         self.sessionId = sessionId
-        self.timestamp = timestamp
+        
+        // Convert Date to ISO 8601 string
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        self.timestamp = formatter.string(from: timestamp)
     }
 }
