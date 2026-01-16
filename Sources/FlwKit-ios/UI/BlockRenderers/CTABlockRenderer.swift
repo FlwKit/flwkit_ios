@@ -108,13 +108,15 @@ struct CTABlockRenderer: BlockRenderer {
             VStack(spacing: 12) {
                 if let primary = block.primary {
                     Button(action: {
-                        // Track button click
-                        analytics.trackButtonClick(
-                            buttonId: block.key ?? "cta_primary",
-                            buttonLabel: primary.label,
-                            buttonAction: primary.action,
-                            screenId: screenId
-                        )
+                        // Track button click (only if screenId is available)
+                        if !screenId.isEmpty {
+                            analytics.trackButtonClick(
+                                buttonId: block.key ?? "cta_primary",
+                                buttonLabel: primary.label,
+                                buttonAction: primary.action,
+                                screenId: screenId
+                            )
+                        }
                         onAction(primary.action, primary.target)
                     }) {
                         Text(primary.label)
@@ -138,13 +140,15 @@ struct CTABlockRenderer: BlockRenderer {
                 
                 if let secondary = block.secondary {
                     Button(action: {
-                        // Track button click
-                        analytics.trackButtonClick(
-                            buttonId: block.key ?? "cta_secondary",
-                            buttonLabel: secondary.label,
-                            buttonAction: secondary.action,
-                            screenId: screenId
-                        )
+                        // Track button click (only if screenId is available)
+                        if !screenId.isEmpty {
+                            analytics.trackButtonClick(
+                                buttonId: block.key ?? "cta_secondary",
+                                buttonLabel: secondary.label,
+                                buttonAction: secondary.action,
+                                screenId: screenId
+                            )
+                        }
                         onAction(secondary.action, secondary.target)
                     }) {
                         Text(secondary.label)

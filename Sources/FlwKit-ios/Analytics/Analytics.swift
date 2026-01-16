@@ -386,9 +386,23 @@ struct AnalyticsEventPayload: Codable {
         self.userId = userId
         self.sessionId = sessionId
         
-        // Convert Date to ISO 8601 string
+        // Convert Date to ISO 8601 string (without fractional seconds for compatibility)
         let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        formatter.formatOptions = [.withInternetDateTime]
         self.timestamp = formatter.string(from: timestamp)
+    }
+    
+    // Custom encoding to exclude nil optional values
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        
+        // Only encode optional fields if they have values
+        try container.encodeIfPresent(flowId, forKey: .flowId)
+        try container.encodeIfPresent(flowVersionId, forKey: .flowVersionId)
+        try container.encode(eventType, forKey: .eventType)
+        try container.encode(eventData, forKey: .eventData)
+        try container.encodeIfPresent(userId, forKey: .userId)
+        try container.encode(sessionId, forKey: .sessionId)
+        try container.encode(timestamp, forKey: .timestamp)
     }
 }
