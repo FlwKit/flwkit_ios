@@ -6,6 +6,8 @@ struct FlowView: View {
     @State private var currentScreenIndex: Int = 0
     @State private var isLoading: Bool = false
     @State private var error: Error?
+    @State private var flowStartTime: Date?
+    @State private var screenEnterTime: Date?
     
     let attributes: [String: Any]
     let onComplete: (([String: Any]) -> Void)?
@@ -69,6 +71,7 @@ struct FlowView: View {
                 )
                 .onAppear {
                     trackScreenView(screen: screen)
+                    screenEnterTime = Date()
                 }
             } else {
                 // Flow complete
@@ -150,38 +153,53 @@ struct FlowView: View {
     
     private func handleFlowComplete() {
         let finalAnswers = currentState.answers.mapValues { $0.value }
-        analytics.track("flow_complete", properties: [
-            "flowKey": currentState.flowKey,
-            "answers": finalAnswers
-        ])
+        let timeSpent = flowStartTime.map { Int(Date().timeIntervalSince($0) * 1000) } ?? 0
+        
+        analytics.trackFlowComplete(
+            flowKey: currentState.flowKey,
+            totalScreens: flow.screens.count,
+            timeSpent: timeSpent
+        )
         
         stateManager.clearState(for: currentState.flowKey, userId: currentState.userId)
+        analytics.resetSession() // Reset session on flow complete
         onComplete?(finalAnswers)
     }
     
     private func handleFlowExit() {
-        analytics.track("flow_exit", properties: [
-            "flowKey": currentState.flowKey,
-            "screenId": flow.screens[currentScreenIndex].id
-        ])
+        let timeSpent = flowStartTime.map { Int(Date().timeIntervalSince($0) * 1000) } ?? 0
+        let screensCompleted = currentScreenIndex + 1
+        
+        analytics.trackFlowAbandoned(
+            flowKey: currentState.flowKey,
+            lastScreenId: flow.screens[currentScreenIndex].id,
+            screensCompleted: screensCompleted,
+            timeSpent: timeSpent
+        )
         
         onExit?()
     }
     
     private func trackFlowStart() {
-        analytics.track("flow_start", properties: [
-            "flowKey": currentState.flowKey,
-            "flowId": flow.id,
-            "version": flow.version
-        ])
+        flowStartTime = Date()
+        
+        // Set flow context for analytics
+        analytics.setFlowContext(flowId: flow.id, flowVersionId: "\(flow.version)")
+        
+        analytics.trackFlowStart(
+            flowKey: currentState.flowKey,
+            entryScreenId: flow.entryScreenId
+        )
     }
     
     private func trackScreenView(screen: Screen) {
-        analytics.track("screen_view", properties: [
-            "flowKey": currentState.flowKey,
-            "screenId": screen.id,
-            "screenType": screen.type
-        ])
+        let screenName = screen.type.capitalized // Use screen type as name, or could be enhanced
+        analytics.trackScreenView(
+            screenId: screen.id,
+            screenName: screenName,
+            screenIndex: currentScreenIndex,
+            totalScreens: flow.screens.count
+        )
     }
     
     private func saveState() {

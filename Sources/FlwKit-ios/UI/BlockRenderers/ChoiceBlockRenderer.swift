@@ -15,13 +15,15 @@ struct ChoiceBlockRenderer: BlockRenderer {
             }
         }
         
+        let screenId = state.currentScreenId ?? ""
         return AnyView(
             ChoiceBlockView(
                 block: block,
                 theme: theme,
                 initialValues: initialValues,
                 onAnswer: onAnswer,
-                onAction: onAction
+                onAction: onAction,
+                screenId: screenId
             )
         )
     }
@@ -33,15 +35,19 @@ struct ChoiceBlockView: View {
     let initialValues: Set<String>
     let onAnswer: (String, Any) -> Void
     let onAction: (String, String?) -> Void
+    let screenId: String
     
     @State private var selectedValues: Set<String>
     
-    init(block: Block, theme: Theme, initialValues: Set<String>, onAnswer: @escaping (String, Any) -> Void, onAction: @escaping (String, String?) -> Void) {
+    private let analytics = Analytics.shared
+    
+    init(block: Block, theme: Theme, initialValues: Set<String>, onAnswer: @escaping (String, Any) -> Void, onAction: @escaping (String, String?) -> Void, screenId: String) {
         self.block = block
         self.theme = theme
         self.initialValues = initialValues
         self.onAnswer = onAnswer
         self.onAction = onAction
+        self.screenId = screenId
         _selectedValues = State(initialValue: initialValues)
     }
     
@@ -180,6 +186,17 @@ struct ChoiceBlockView: View {
                             willBeSelected = true
                         }
                         onAnswer(blockKey, option.value)
+                    }
+                    
+                    // Track choice selection
+                    if !wasSelected && willBeSelected {
+                        analytics.trackChoiceSelected(
+                            choiceBlockId: blockKey,
+                            optionValue: option.value,
+                            optionLabel: option.label,
+                            screenId: screenId,
+                            isMultiSelect: isMultiple
+                        )
                     }
                     
                     // Trigger action when option becomes selected (not when deselected)
