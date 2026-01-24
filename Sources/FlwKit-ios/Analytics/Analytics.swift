@@ -47,8 +47,8 @@ class Analytics {
     }
     
     /// Current session ID (for internal access)
-    var sessionId: String? {
-        return getOrCreateSessionId()
+    var currentSessionId: String? {
+        return sessionId ?? getOrCreateSessionId()
     }
     
     /// Set user ID for cross-session tracking

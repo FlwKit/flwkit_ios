@@ -36,7 +36,7 @@ class APIClient {
         
         // Get session ID from analytics
         let analytics = Analytics.shared
-        let sessionId = analytics.sessionId
+        let sessionId = analytics.currentSessionId
         
         // First, fetch the flow to get the flowKey
         // Build URL: /sdk/v1/apps/:appId/flow
