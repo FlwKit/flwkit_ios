@@ -88,7 +88,7 @@ class APIClient {
     /// Check for A/B test variant assignment
     func checkABTestVariant(flowKey: String, userId: String? = nil, sessionId: String? = nil, completion: @escaping (ABTestResponse?) -> Void) {
         guard let appId = appId, let apiKey = apiKey else {
-            completion(nil)
+            completion(nil as ABTestResponse?)
             return
         }
         
@@ -114,7 +114,7 @@ class APIClient {
         }
         
         guard let url = components?.url else {
-            completion(nil)
+            completion(nil as ABTestResponse?)
             return
         }
         
@@ -129,12 +129,12 @@ class APIClient {
                 #if DEBUG
                 print("FlwKit A/B Test: Failed to check variant - \(error.localizedDescription)")
                 #endif
-                completion(nil)
+                completion(nil as ABTestResponse?)
                 return
             }
             
             guard let httpResponse = response as? HTTPURLResponse else {
-                completion(nil)
+                completion(nil as ABTestResponse?)
                 return
             }
             
@@ -155,7 +155,7 @@ class APIClient {
                 #if DEBUG
                 print("FlwKit A/B Test: HTTP error \(httpResponse.statusCode)")
                 #endif
-                completion(nil)
+                completion(nil as ABTestResponse?)
                 return
             }
             
@@ -381,6 +381,19 @@ class FlowCache {
 }
 
 // MARK: - Variant Cache
+
+/// Cached A/B test variant assignment
+private struct CachedVariant {
+    let flowKey: String
+    let variant: ABTestResponse
+    let expiresAt: Date
+    let userId: String?
+    let sessionId: String
+    
+    var isExpired: Bool {
+        return Date() > expiresAt
+    }
+}
 
 class VariantCache {
     static let shared = VariantCache()
