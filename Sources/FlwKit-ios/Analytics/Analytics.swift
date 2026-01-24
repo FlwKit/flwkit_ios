@@ -9,6 +9,8 @@ class Analytics {
     private var flowId: String?
     private var flowVersionId: String?
     private var sessionId: String?
+    private var abTestId: String?
+    private var variantId: String?
     
     private var eventQueue: [AnalyticsEventPayload] = []
     private let queueLock = NSLock()
@@ -44,6 +46,11 @@ class Analytics {
         return userId
     }
     
+    /// Current session ID (for internal access)
+    var sessionId: String? {
+        return getOrCreateSessionId()
+    }
+    
     /// Set user ID for cross-session tracking
     func setUserId(_ userId: String) {
         self.userId = userId
@@ -54,6 +61,12 @@ class Analytics {
     func setFlowContext(flowId: String, flowVersionId: String? = nil) {
         self.flowId = flowId
         self.flowVersionId = flowVersionId
+    }
+    
+    /// Set A/B test context for events
+    func setABTestContext(testId: String?, variantId: String?) {
+        self.abTestId = testId
+        self.variantId = variantId
     }
     
     /// Get or create session ID
@@ -89,11 +102,20 @@ class Analytics {
             return
         }
         
+        // Add A/B test context to event data if available
+        var enrichedEventData = eventData
+        if let abTestId = abTestId {
+            enrichedEventData["abTestId"] = abTestId
+        }
+        if let variantId = variantId {
+            enrichedEventData["variantId"] = variantId
+        }
+        
         let payload = AnalyticsEventPayload(
             flowId: flowId,
             flowVersionId: flowVersionId,
             eventType: eventType,
-            eventData: eventData,
+            eventData: enrichedEventData,
             userId: userId,
             sessionId: sessionId ?? getOrCreateSessionId(),
             timestamp: Date()
