@@ -38,49 +38,61 @@ class APIClient {
         let analytics = Analytics.shared
         let sessionId = analytics.currentSessionId
         
-        // First, fetch the flow to get the flowKey
-        // Build URL: /sdk/v1/apps/:appId/flow
-        var urlString = "\(baseURL)/sdk/v1/apps/\(appId)/flow"
-        if let userId = userId {
-            urlString += "?userId=\(userId)"
-        }
-        
-        guard let url = URL(string: urlString) else {
-            completion(.failure(FlwKitError.invalidURL))
-            return
-        }
-        
-        // Fetch flow first to get flowKey, then check for A/B test
-        fetchFlowFromAPI(url: url, apiKey: apiKey, appId: appId) { [weak self] result in
+        // First, check for A/B test using appId as flowKey
+        // The A/B test endpoint now returns flowData, so we can use it directly if available
+        checkABTestVariant(flowKey: appId, userId: userId, sessionId: sessionId) { [weak self] abTestResult in
             guard let self = self else {
                 completion(.failure(FlwKitError.invalidResponse))
                 return
             }
             
-            switch result {
-            case .success(let flow):
-                // Now check for A/B test using the actual flowKey
-                self.checkABTestVariant(flowKey: flow.flowKey, userId: userId, sessionId: sessionId) { abTestResult in
-                    // Set flow context and A/B test context in analytics if A/B test is active
-                    if let abTest = abTestResult, abTest.hasActiveTest {
-                        // Use flowId from flow or testId from A/B test response
-                        let flowIdToUse = abTest.testId ?? flow.id
-                        if let flowVersionId = abTest.flowVersionId {
-                            analytics.setFlowContext(flowId: flowIdToUse, flowVersionId: flowVersionId)
-                        }
-                        analytics.setABTestContext(testId: abTest.testId, variantId: abTest.variant?.id)
-                    } else {
-                        // Clear A/B test context if no active test
-                        analytics.setABTestContext(testId: nil, variantId: nil)
-                        // Set flow context without version (default published version)
-                        analytics.setFlowContext(flowId: flow.id, flowVersionId: nil)
-                    }
-                    
-                    // Return the flow (backend should have served the variant if A/B test is active)
-                    completion(.success(flow))
+            // If A/B test has flowData, use it directly
+            if let abTest = abTestResult, abTest.hasActiveTest, let flowPayload = abTest.flowData {
+                // Convert FlowPayloadV1 to Flow
+                let flow = Flow(from: flowPayload)
+                
+                // Cache the flow
+                self.cache.saveFlow(flow, for: flow.flowKey)
+                self.cache.saveFlow(flow, for: appId)
+                
+                // Register all themes from the response
+                for theme in flow.themes {
+                    ThemeManager.shared.registerTheme(theme)
                 }
-            case .failure(let error):
-                completion(.failure(error))
+                
+                // Set flow context and A/B test context in analytics
+                let flowIdToUse = abTest.experimentId ?? flow.id
+                if let flowVersionId = abTest.flowVersionId {
+                    analytics.setFlowContext(flowId: flowIdToUse, flowVersionId: flowVersionId)
+                }
+                analytics.setABTestContext(testId: abTest.experimentId, variantId: abTest.variant?.id)
+                
+                completion(.success(flow))
+                return
+            }
+            
+            // No A/B test or no flowData, fetch default flow
+            var urlString = "\(self.baseURL)/sdk/v1/apps/\(appId)/flow"
+            if let userId = userId {
+                urlString += "?userId=\(userId)"
+            }
+            
+            guard let url = URL(string: urlString) else {
+                completion(.failure(FlwKitError.invalidURL))
+                return
+            }
+            
+            self.fetchFlowFromAPI(url: url, apiKey: apiKey, appId: appId) { result in
+                switch result {
+                case .success(let flow):
+                    // Set flow context without version (default published version)
+                    analytics.setFlowContext(flowId: flow.id, flowVersionId: nil)
+                    // Clear A/B test context if no active test
+                    analytics.setABTestContext(testId: nil, variantId: nil)
+                    completion(.success(flow))
+                case .failure(let error):
+                    completion(.failure(error))
+                }
             }
         }
     }
@@ -142,10 +154,11 @@ class APIClient {
             if httpResponse.statusCode == 404 {
                 let noTestResponse = ABTestResponse(
                     hasActiveTest: false,
-                    testId: nil,
+                    experimentId: nil,
                     testName: nil,
                     variant: nil,
-                    flowVersionId: nil
+                    flowVersionId: nil,
+                    flowData: nil
                 )
                 completion(noTestResponse)
                 return

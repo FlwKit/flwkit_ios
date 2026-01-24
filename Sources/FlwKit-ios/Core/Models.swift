@@ -622,23 +622,24 @@ public struct AnyCodable: Codable {
     }
 }
 
-
 // MARK: - A/B Testing Models
 
 /// A/B test variant response from backend
 public struct ABTestResponse: Codable {
     public let hasActiveTest: Bool
-    public let testId: String?
+    public let experimentId: String? // Changed from testId
     public let testName: String?
     public let variant: Variant?
     public let flowVersionId: String?
+    public let flowData: FlowPayloadV1? // NEW: Complete flow data with resolved assets
     
     enum CodingKeys: String, CodingKey {
         case hasActiveTest
-        case testId
+        case experimentId
         case testName
         case variant
         case flowVersionId
+        case flowData
     }
 }
 
@@ -652,5 +653,18 @@ public struct Variant: Codable {
         case id
         case name
         case flowVersionId
+    }
+}
+
+/// Cached A/B test variant assignment
+struct CachedVariant {
+    let flowKey: String
+    let variant: ABTestResponse
+    let expiresAt: Date
+    let userId: String?
+    let sessionId: String
+    
+    var isExpired: Bool {
+        return Date() > expiresAt
     }
 }
