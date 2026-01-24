@@ -622,3 +622,35 @@ public struct AnyCodable: Codable {
     }
 }
 
+
+// MARK: - A/B Testing Models
+
+/// A/B test variant response from backend
+public struct ABTestResponse: Codable {
+    public let hasActiveTest: Bool
+    public let testId: String?
+    public let testName: String?
+    public let variant: Variant?
+    public let flowVersionId: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case hasActiveTest
+        case testId
+        case testName
+        case variant
+        case flowVersionId
+    }
+}
+
+/// A/B test variant information
+public struct Variant: Codable {
+    public let id: String
+    public let name: String
+    public let flowVersionId: String
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case flowVersionId
+    }
+}

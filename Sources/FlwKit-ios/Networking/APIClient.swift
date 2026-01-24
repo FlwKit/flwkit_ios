@@ -382,21 +382,21 @@ class FlowCache {
 
 // MARK: - Variant Cache
 
-/// Cached A/B test variant assignment
-private struct CachedVariant {
-    let flowKey: String
-    let variant: ABTestResponse
-    let expiresAt: Date
-    let userId: String?
-    let sessionId: String
-    
-    var isExpired: Bool {
-        return Date() > expiresAt
-    }
-}
-
 class VariantCache {
     static let shared = VariantCache()
+    
+    /// Cached A/B test variant assignment
+    private struct CachedVariant {
+        let flowKey: String
+        let variant: ABTestResponse
+        let expiresAt: Date
+        let userId: String?
+        let sessionId: String
+        
+        var isExpired: Bool {
+            return Date() > expiresAt
+        }
+    }
     
     private var cache: [String: CachedVariant] = [:]
     private let cacheLock = NSLock()
