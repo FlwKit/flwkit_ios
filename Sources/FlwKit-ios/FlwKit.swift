@@ -1,5 +1,30 @@
 import SwiftUI
 
+// MARK: - Completion Result
+
+/// Result returned when a flow completes
+public struct FlwKitCompletionResult {
+    /// Flow ID (flowKey or ObjectId)
+    public let flowId: String
+    
+    /// Variant ID if user was in an A/B test, nil otherwise
+    public let variantId: String?
+    
+    /// Timestamp when the flow was completed
+    public let completedAt: Date
+    
+    /// Answers collected from all screens in the flow
+    /// Keys are the block keys, values are the user's answers
+    public let answers: [String: Any]
+    
+    public init(flowId: String, variantId: String?, completedAt: Date, answers: [String: Any]) {
+        self.flowId = flowId
+        self.variantId = variantId
+        self.completedAt = completedAt
+        self.answers = answers
+    }
+}
+
 // MARK: - Public API
 
 public struct FlwKit {
@@ -22,12 +47,12 @@ public struct FlwKit {
     /// Note: The active flow is fetched automatically from the backend based on the API key
     /// - Parameters:
     ///   - attributes: Additional attributes to pass to the flow
-    ///   - onComplete: Callback when flow completes with final answers
+    ///   - onComplete: Callback when flow completes with completion result
     ///   - onExit: Optional callback when user exits the flow
     ///   - completion: Completion handler with the flow view or error
     public static func present(
         attributes: [String: Any] = [:],
-        onComplete: @escaping ([String: Any]) -> Void = { _ in },
+        onComplete: @escaping (FlwKitCompletionResult) -> Void = { _ in },
         onExit: (() -> Void)? = nil,
         completion: @escaping (Result<AnyView, Error>) -> Void
     ) {
@@ -40,7 +65,9 @@ public struct FlwKit {
                     flowKey: flow.flowKey,
                     userId: analytics.currentUserId,
                     attributes: attributes,
-                    onComplete: onComplete,
+                    onComplete: { result in
+                        onComplete(result)
+                    },
                     onExit: onExit
                     )
                 )
@@ -63,8 +90,10 @@ public struct FlwKit {
 /// 
 /// With completion handler:
 /// ```swift
-/// FlwKitFlowView { answers in
-///     print(answers)
+/// FlwKitFlowView { result in
+///     print("Flow completed: \(result.flowId)")
+///     print("Answers: \(result.answers)")
+///     router.navigate(to: .home)
 /// }
 /// ```
 /// 
@@ -75,7 +104,7 @@ public struct FlwKitFlowView: View {
     @State private var error: Error?
     
     let attributes: [String: Any]
-    let onComplete: (([String: Any]) -> Void)?
+    let onComplete: ((FlwKitCompletionResult) -> Void)?
     let onExit: (() -> Void)?
     
     private let apiClient = APIClient.shared
@@ -88,19 +117,19 @@ public struct FlwKitFlowView: View {
     
     /// Initialize a FlwKit flow view with completion handler
     /// - Parameters:
-    ///   - onComplete: Callback when flow completes with final answers
-    public init(onComplete: @escaping ([String: Any]) -> Void) {
+    ///   - onComplete: Callback when flow completes with completion result
+    public init(onComplete: @escaping (FlwKitCompletionResult) -> Void) {
         self.init(attributes: [:], onComplete: onComplete, onExit: nil)
     }
     
     /// Initialize a FlwKit flow view (full control)
     /// - Parameters:
     ///   - attributes: Additional attributes to pass to the flow
-    ///   - onComplete: Optional callback when flow completes with final answers
+    ///   - onComplete: Optional callback when flow completes with completion result
     ///   - onExit: Optional callback when user exits the flow
     public init(
         attributes: [String: Any] = [:],
-        onComplete: (([String: Any]) -> Void)? = nil,
+        onComplete: ((FlwKitCompletionResult) -> Void)? = nil,
         onExit: (() -> Void)? = nil
     ) {
         self.attributes = attributes
@@ -123,7 +152,9 @@ public struct FlwKitFlowView: View {
                     flowKey: flow.flowKey,
                     userId: analytics.currentUserId,
                     attributes: attributes,
-                    onComplete: onComplete ?? { _ in },
+                    onComplete: { result in
+                        onComplete?(result)
+                    },
                     onExit: onExit
                 )
             }

@@ -49,7 +49,7 @@ import FlwKit_ios
 @main
 struct MyApp: App {
     init() {
-        FlwKit.configure(appId: "your-app-id", apiKey: "your-api-key")
+        FlwKit.configure(apiKey: "your-api-key")
     }
     
     var body: some Scene {
@@ -59,6 +59,8 @@ struct MyApp: App {
     }
 }
 ```
+
+**Note:** The app ID is automatically extracted from your API key by the backend. Only one flow can be active at a time, and it's automatically fetched based on your API key.
 
 ### 2. Use (One Line)
 
@@ -74,7 +76,7 @@ struct OnboardingView: View {
 }
 ```
 
-**That's it!** The flow is automatically fetched from your backend based on your appId. Everything else (loading, state, analytics, error handling) is handled automatically.
+**That's it!** The active flow is automatically fetched from your backend based on your API key. Everything else (loading, state, analytics, error handling) is handled automatically.
 
 ## Usage Examples
 
@@ -87,12 +89,20 @@ FlwKitFlowView()
 ### With Completion Handler
 
 ```swift
-FlwKitFlowView { answers in
-    print("User completed onboarding!")
-    print("Answers: \(answers)")
+FlwKitFlowView { result in
+    print("Flow completed: \(result.flowId)")
+    print("Variant: \(result.variantId ?? "none")")
+    print("Answers: \(result.answers)")
     // Navigate to main screen
+    router.navigate(to: .home)
 }
 ```
+
+The completion callback receives a `FlwKitCompletionResult` containing:
+- `flowId`: The flow identifier
+- `variantId`: A/B test variant ID (if applicable)
+- `completedAt`: Completion timestamp
+- `answers`: All answers collected from each screen
 
 ### With Attributes
 
@@ -103,8 +113,9 @@ FlwKitFlowView(
         "source": "app_launch",
         "campaign": "summer_2024"
     ],
-    onComplete: { answers in
-        // Handle completion
+    onComplete: { result in
+        // Handle completion with full result
+        processAnswers(result.answers)
     }
 )
 ```
@@ -119,8 +130,9 @@ import SwiftUI
 class ViewController: UIViewController {
     @IBAction func showOnboarding() {
         FlwKit.present(
-            onComplete: { [weak self] answers in
-                print("Completed: \(answers)")
+            onComplete: { [weak self] result in
+                print("Completed: \(result.flowId)")
+                print("Answers: \(result.answers)")
                 self?.dismiss(animated: true)
             }
         ) { [weak self] result in
@@ -142,14 +154,13 @@ class ViewController: UIViewController {
 ### Basic Configuration
 
 ```swift
-FlwKit.configure(appId: "your-app-id", apiKey: "your-api-key")
+FlwKit.configure(apiKey: "your-api-key")
 ```
 
 ### With User ID
 
 ```swift
 FlwKit.configure(
-    appId: "your-app-id",
     apiKey: "your-api-key",
     userId: "user-123"
 )
@@ -159,24 +170,27 @@ FlwKit.configure(
 
 ```swift
 FlwKit.configure(
-    appId: "your-app-id",
     apiKey: "your-api-key",
     userId: "user-123",
     baseURL: "https://custom-api.example.com"
 )
 ```
 
+**Note:** The app ID is automatically extracted from your API key by the backend, so you don't need to provide it.
+
 ## How It Works
 
-1. **Configure** - Set your app credentials once
-2. **Display** - Add `FlwKitFlowView` with a flow key
+1. **Configure** - Set your API key once (app ID is extracted automatically)
+2. **Display** - Add `FlwKitFlowView` (active flow is fetched automatically)
 3. **Automatic** - The package:
-   - Fetches flow data from your backend
+   - Fetches the active flow from your backend
+   - Checks for A/B tests and uses variant if available
    - Renders screens natively with SwiftUI
    - Saves user progress automatically
    - Tracks analytics events
    - Handles errors gracefully
    - Caches flows for offline use
+   - Returns completion results with all answers and metadata
 
 ## Flow Structure
 
@@ -228,9 +242,11 @@ All events are sent to your backend automatically.
 
 ## Documentation
 
-- [Integration Guide](INTEGRATION_GUIDE.md) - Detailed integration instructions
-- [SPM Setup](SPM_SETUP.md) - Swift Package Manager setup guide
-- [SDK Documentation](FlwKit_SDK.md) - Technical documentation
+- [Implementation Guide](docs/IMPLEMENTATION_GUIDE.md) - **Complete user-facing guide** with examples and best practices
+- [Existing App Integration](docs/EXISTING_APP_INTEGRATION.md) - **Step-by-step guide for integrating into existing iOS apps**
+- [Integration Guide](docs/INTEGRATION_GUIDE.md) - Detailed integration instructions
+- [SPM Setup](docs/SPM_SETUP.md) - Swift Package Manager setup guide
+- [SDK Documentation](docs/FlwKit_SDK.md) - Technical documentation
 
 ## License
 

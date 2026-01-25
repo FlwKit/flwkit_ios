@@ -10,13 +10,13 @@ struct FlowView: View {
     @State private var screenEnterTime: Date?
     
     let attributes: [String: Any]
-    let onComplete: (([String: Any]) -> Void)?
+    let onComplete: ((FlwKitCompletionResult) -> Void)?
     let onExit: (() -> Void)?
     
     private let stateManager = StateManager.shared
     private let analytics = Analytics.shared
     
-    init(flow: Flow, flowKey: String, userId: String?, attributes: [String: Any], onComplete: (([String: Any]) -> Void)?, onExit: (() -> Void)?) {
+    init(flow: Flow, flowKey: String, userId: String?, attributes: [String: Any], onComplete: ((FlwKitCompletionResult) -> Void)?, onExit: (() -> Void)?) {
         self.flow = flow
         self.attributes = attributes
         
@@ -154,6 +154,7 @@ struct FlowView: View {
     private func handleFlowComplete() {
         let finalAnswers = currentState.answers.mapValues { $0.value }
         let timeSpent = flowStartTime.map { Int(Date().timeIntervalSince($0) * 1000) } ?? 0
+        let completedAt = Date()
         
         analytics.trackFlowComplete(
             flowKey: currentState.flowKey,
@@ -161,10 +162,22 @@ struct FlowView: View {
             timeSpent: timeSpent
         )
         
+        // Get variantId from analytics context before clearing it
+        let variantId = analytics.currentVariantId
+        
         stateManager.clearState(for: currentState.flowKey, userId: currentState.userId)
         analytics.resetSession() // Reset session on flow complete
         analytics.clearABTestContext() // Clear experiment context when flow ends
-        onComplete?(finalAnswers)
+        
+        // Create completion result with metadata
+        let result = FlwKitCompletionResult(
+            flowId: flow.id,
+            variantId: variantId,
+            completedAt: completedAt,
+            answers: finalAnswers
+        )
+        
+        onComplete?(result)
     }
     
     private func handleFlowExit() {

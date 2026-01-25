@@ -51,6 +51,11 @@ class Analytics {
         return sessionId ?? getOrCreateSessionId()
     }
     
+    /// Current variant ID (for internal access)
+    var currentVariantId: String? {
+        return variantId
+    }
+    
     /// Set user ID for cross-session tracking
     func setUserId(_ userId: String) {
         self.userId = userId
