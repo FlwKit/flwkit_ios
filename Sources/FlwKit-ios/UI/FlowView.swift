@@ -152,7 +152,9 @@ struct FlowView: View {
     }
     
     private func handleFlowComplete() {
-        let finalAnswers = currentState.answers.mapValues { $0.value }
+        let rawAnswers = currentState.answers.mapValues { $0.value }
+        // Map choice option IDs to labels
+        let finalAnswers = mapAnswersToContent(rawAnswers)
         let timeSpent = flowStartTime.map { Int(Date().timeIntervalSince($0) * 1000) } ?? 0
         let completedAt = Date()
         
@@ -178,6 +180,55 @@ struct FlowView: View {
         )
         
         onComplete?(result)
+    }
+    
+    /// Maps answer IDs to actual content (labels) for choice blocks
+    /// For choice blocks, converts option values (IDs) to option labels (text)
+    /// For other blocks (text input, slider), returns the value as-is
+    private func mapAnswersToContent(_ answers: [String: Any]) -> [String: Any] {
+        var mappedAnswers: [String: Any] = [:]
+        
+        // Build a map of block keys to their blocks for quick lookup
+        var blockMap: [String: Block] = [:]
+        for screen in flow.screens {
+            for block in screen.blocks {
+                if let blockKey = block.key {
+                    blockMap[blockKey] = block
+                }
+            }
+        }
+        
+        // Process each answer
+        for (key, value) in answers {
+            guard let block = blockMap[key] else {
+                // Block not found, keep original value
+                mappedAnswers[key] = value
+                continue
+            }
+            
+            // Check if this is a choice block
+            if block.type == "choice", let options = block.options {
+                // Create a map of option values to labels
+                let optionMap: [String: String] = Dictionary(uniqueKeysWithValues: options.map { ($0.value, $0.label) })
+                
+                // Map the answer value(s)
+                if let singleValue = value as? String {
+                    // Single select: map the option value to label
+                    mappedAnswers[key] = optionMap[singleValue] ?? singleValue
+                } else if let arrayValue = value as? [String] {
+                    // Multi-select: map each option value to label
+                    mappedAnswers[key] = arrayValue.map { optionMap[$0] ?? $0 }
+                } else {
+                    // Unknown format, keep original
+                    mappedAnswers[key] = value
+                }
+            } else {
+                // Not a choice block, keep original value (text input, slider, etc.)
+                mappedAnswers[key] = value
+            }
+        }
+        
+        return mappedAnswers
     }
     
     private func handleFlowExit() {
