@@ -31,7 +31,7 @@ class Analytics {
         loadQueue()
     }
     
-    func configure(baseURL: String? = nil, appId: String, apiKey: String, userId: String? = nil) {
+    func configure(baseURL: String? = nil, apiKey: String, userId: String? = nil) {
         self.apiKey = apiKey
         if let baseURL = baseURL {
             self.baseURL = baseURL

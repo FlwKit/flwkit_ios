@@ -4,7 +4,6 @@ class APIClient {
     static let shared = APIClient()
     
     private var baseURL: String = "https://api.flwkit.com"
-    private var appId: String?
     private var apiKey: String?
     
     private let session: URLSession
@@ -20,8 +19,7 @@ class APIClient {
         self.variantCache = VariantCache.shared
     }
     
-    func configure(baseURL: String? = nil, appId: String, apiKey: String) {
-        self.appId = appId
+    func configure(baseURL: String? = nil, apiKey: String) {
         self.apiKey = apiKey
         if let baseURL = baseURL {
             self.baseURL = baseURL
@@ -29,7 +27,7 @@ class APIClient {
     }
     
     func fetchFlow(userId: String? = nil, completion: @escaping (Result<Flow, Error>) -> Void) {
-        guard let appId = appId, let apiKey = apiKey else {
+        guard let apiKey = apiKey else {
             completion(.failure(FlwKitError.notConfigured))
             return
         }
@@ -39,8 +37,8 @@ class APIClient {
         let sessionId = analytics.currentSessionId
         
         // Step 1: Fetch active flow first to get the actual flowKey
-        // This endpoint returns the active flow for the app
-        var urlString = "\(baseURL)/sdk/v1/apps/\(appId)/flow"
+        // This endpoint returns the active flow for the app (appId extracted from API key)
+        var urlString = "\(baseURL)/sdk/v1/flow"
         if let userId = userId {
             urlString += "?userId=\(userId)"
         }
@@ -50,7 +48,7 @@ class APIClient {
             return
         }
         
-        fetchFlowFromAPI(url: url, apiKey: apiKey, appId: appId) { [weak self] result in
+        fetchFlowFromAPI(url: url, apiKey: apiKey) { [weak self] result in
             guard let self = self else {
                 completion(.failure(FlwKitError.invalidResponse))
                 return
@@ -68,7 +66,7 @@ class APIClient {
                         
                         // Cache the variant flow
                         self.cache.saveFlow(variantFlow, for: variantFlow.flowKey)
-                        self.cache.saveFlow(variantFlow, for: appId)
+                        self.cache.saveFlow(variantFlow, for: "active-flow")
                         
                         // Register all themes from the response
                         for theme in variantFlow.themes {
@@ -100,7 +98,7 @@ class APIClient {
                 // Handle 404 specifically for "no active flow"
                 if case FlwKitError.httpError(let statusCode) = error, statusCode == 404 {
                     // Try to use cached flow as fallback
-                    if let cachedFlow = self.cache.getFlow(flowKey: appId) {
+                    if let cachedFlow = self.cache.getFlow(flowKey: "active-flow") {
                         analytics.setFlowContext(flowId: cachedFlow.id, flowVersionId: nil)
                         analytics.setABTestContext(testId: nil, variantId: nil)
                         completion(.success(cachedFlow))
@@ -116,7 +114,7 @@ class APIClient {
     
     /// Check for A/B test variant assignment
     func checkABTestVariant(flowKey: String, userId: String? = nil, sessionId: String? = nil, completion: @escaping (ABTestResponse?) -> Void) {
-        guard let appId = appId, let apiKey = apiKey else {
+        guard let apiKey = apiKey else {
             completion(nil as ABTestResponse?)
             return
         }
@@ -127,8 +125,8 @@ class APIClient {
             return
         }
         
-        // Build URL: /sdk/v1/apps/:appId/ab-tests/:flowKey
-        var components = URLComponents(string: "\(baseURL)/sdk/v1/apps/\(appId)/ab-tests/\(flowKey)")
+        // Build URL: /sdk/v1/ab-tests/:flowKey (appId extracted from API key)
+        var components = URLComponents(string: "\(baseURL)/sdk/v1/ab-tests/\(flowKey)")
         var queryItems: [URLQueryItem] = []
         
         if let userId = userId {
@@ -211,7 +209,7 @@ class APIClient {
         }.resume()
     }
     
-    private func fetchFlowFromAPI(url: URL, apiKey: String, appId: String, completion: @escaping (Result<Flow, Error>) -> Void) {
+    private func fetchFlowFromAPI(url: URL, apiKey: String, completion: @escaping (Result<Flow, Error>) -> Void) {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
@@ -220,7 +218,7 @@ class APIClient {
         session.dataTask(with: request) { [weak self] data, response, error in
             if let error = error {
                 // Try to use cached flow on network failure
-                if let cachedFlow = self?.cache.getFlow(flowKey: appId) {
+                if let cachedFlow = self?.cache.getFlow(flowKey: "active-flow") {
                     completion(.success(cachedFlow))
                 } else {
                     completion(.failure(error))
@@ -235,7 +233,7 @@ class APIClient {
             
             guard (200...299).contains(httpResponse.statusCode) else {
                 // Try cache on error
-                if let cachedFlow = self?.cache.getFlow(flowKey: appId) {
+                if let cachedFlow = self?.cache.getFlow(flowKey: "active-flow") {
                     completion(.success(cachedFlow))
                 } else {
                     completion(.failure(FlwKitError.httpError(httpResponse.statusCode)))
@@ -257,8 +255,8 @@ class APIClient {
                 
                 // Cache using flowKey from response
                 self?.cache.saveFlow(flow, for: flow.flowKey)
-                // Also cache by appId for quick lookup
-                self?.cache.saveFlow(flow, for: appId)
+                // Also cache as active-flow for quick lookup
+                self?.cache.saveFlow(flow, for: "active-flow")
                 
                 // Register all themes from the response
                 for theme in flow.themes {
@@ -305,7 +303,7 @@ class APIClient {
             return
         }
         
-        guard let appId = appId, let apiKey = apiKey else {
+        guard let apiKey = apiKey else {
             completion(.failure(FlwKitError.notConfigured))
             return
         }

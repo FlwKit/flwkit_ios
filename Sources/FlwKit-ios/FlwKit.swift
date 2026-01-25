@@ -6,20 +6,20 @@ public struct FlwKit {
     private static let apiClient = APIClient.shared
     private static let analytics = Analytics.shared
     
-    /// Configure FlwKit with your app credentials.
+    /// Configure FlwKit with your API key.
     /// Call this once during app initialization (in AppDelegate or @main App struct).
+    /// The app ID is automatically extracted from the API key by the backend.
     /// - Parameters:
-    ///   - appId: Your FlwKit app ID
     ///   - apiKey: Your FlwKit API key
     ///   - userId: Optional user ID for user-specific flows
     ///   - baseURL: Optional custom base URL (defaults to https://api.flwkit.com)
-    public static func configure(appId: String, apiKey: String, userId: String? = nil, baseURL: String? = nil) {
-        apiClient.configure(baseURL: baseURL, appId: appId, apiKey: apiKey)
-        analytics.configure(baseURL: baseURL, appId: appId, apiKey: apiKey, userId: userId)
+    public static func configure(apiKey: String, userId: String? = nil, baseURL: String? = nil) {
+        apiClient.configure(baseURL: baseURL, apiKey: apiKey)
+        analytics.configure(baseURL: baseURL, apiKey: apiKey, userId: userId)
     }
     
     /// Present a flow programmatically (for UIKit or programmatic SwiftUI)
-    /// Note: flowKey is now fetched automatically from the backend based on appId
+    /// Note: The active flow is fetched automatically from the backend based on the API key
     /// - Parameters:
     ///   - attributes: Additional attributes to pass to the flow
     ///   - onComplete: Callback when flow completes with final answers
@@ -68,7 +68,7 @@ public struct FlwKit {
 /// }
 /// ```
 /// 
-/// Note: flowKey is now automatically fetched from the backend based on appId
+/// Note: The active flow is automatically fetched from the backend based on the API key
 public struct FlwKitFlowView: View {
     @State private var flow: Flow?
     @State private var isLoading: Bool = true
