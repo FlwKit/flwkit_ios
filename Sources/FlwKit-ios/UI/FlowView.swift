@@ -163,6 +163,7 @@ struct FlowView: View {
         
         stateManager.clearState(for: currentState.flowKey, userId: currentState.userId)
         analytics.resetSession() // Reset session on flow complete
+        analytics.clearABTestContext() // Clear experiment context when flow ends
         onComplete?(finalAnswers)
     }
     
@@ -176,6 +177,8 @@ struct FlowView: View {
             screensCompleted: screensCompleted,
             timeSpent: timeSpent
         )
+        
+        analytics.clearABTestContext() // Clear experiment context when flow is abandoned
         
         onExit?()
     }

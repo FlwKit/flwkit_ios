@@ -61,10 +61,13 @@ class APIClient {
                 }
                 
                 // Set flow context and A/B test context in analytics
-                let flowIdToUse = abTest.experimentId ?? flow.id
+                // Use the actual flow ID from the flow data, not experimentId
                 if let flowVersionId = abTest.flowVersionId {
-                    analytics.setFlowContext(flowId: flowIdToUse, flowVersionId: flowVersionId)
+                    analytics.setFlowContext(flowId: flow.id, flowVersionId: flowVersionId)
+                } else {
+                    analytics.setFlowContext(flowId: flow.id, flowVersionId: nil)
                 }
+                // Store experiment context separately (experimentId and variantId)
                 analytics.setABTestContext(testId: abTest.experimentId, variantId: abTest.variant?.id)
                 
                 completion(.success(flow))

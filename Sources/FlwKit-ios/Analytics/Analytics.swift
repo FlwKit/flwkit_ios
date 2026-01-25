@@ -69,6 +69,12 @@ class Analytics {
         self.variantId = variantId
     }
     
+    /// Clear A/B test context (e.g., when flow ends)
+    func clearABTestContext() {
+        self.abTestId = nil
+        self.variantId = nil
+    }
+    
     /// Get or create session ID
     private func getOrCreateSessionId() -> String {
         if let stored = userDefaults.string(forKey: sessionIdKey), !stored.isEmpty {
@@ -102,20 +108,13 @@ class Analytics {
             return
         }
         
-        // Add A/B test context to event data if available
-        var enrichedEventData = eventData
-        if let abTestId = abTestId {
-            enrichedEventData["abTestId"] = abTestId
-        }
-        if let variantId = variantId {
-            enrichedEventData["variantId"] = variantId
-        }
-        
         let payload = AnalyticsEventPayload(
             flowId: flowId,
             flowVersionId: flowVersionId,
+            experimentId: abTestId, // Include experimentId at payload level
+            variantId: variantId,  // Include variantId at payload level
             eventType: eventType,
-            eventData: enrichedEventData,
+            eventData: eventData,
             userId: userId,
             sessionId: sessionId ?? getOrCreateSessionId(),
             timestamp: Date()
@@ -384,6 +383,8 @@ class Analytics {
 struct AnalyticsEventPayload: Codable {
     let flowId: String?
     let flowVersionId: String?
+    let experimentId: String? // NEW: Experiment ID for A/B testing
+    let variantId: String?    // NEW: Variant ID for A/B testing
     let eventType: String
     let eventData: [String: AnyCodable]
     let userId: String?
@@ -393,6 +394,8 @@ struct AnalyticsEventPayload: Codable {
     enum CodingKeys: String, CodingKey {
         case flowId
         case flowVersionId
+        case experimentId
+        case variantId
         case eventType
         case eventData
         case userId
@@ -400,9 +403,11 @@ struct AnalyticsEventPayload: Codable {
         case timestamp
     }
     
-    init(flowId: String?, flowVersionId: String?, eventType: String, eventData: [String: Any], userId: String?, sessionId: String, timestamp: Date) {
+    init(flowId: String?, flowVersionId: String?, experimentId: String?, variantId: String?, eventType: String, eventData: [String: Any], userId: String?, sessionId: String, timestamp: Date) {
         self.flowId = flowId
         self.flowVersionId = flowVersionId
+        self.experimentId = experimentId
+        self.variantId = variantId
         self.eventType = eventType
         self.eventData = eventData.mapValues { AnyCodable($0) }
         self.userId = userId
@@ -421,6 +426,8 @@ struct AnalyticsEventPayload: Codable {
         // Only encode optional fields if they have values
         try container.encodeIfPresent(flowId, forKey: .flowId)
         try container.encodeIfPresent(flowVersionId, forKey: .flowVersionId)
+        try container.encodeIfPresent(experimentId, forKey: .experimentId)
+        try container.encodeIfPresent(variantId, forKey: .variantId)
         try container.encode(eventType, forKey: .eventType)
         try container.encode(eventData, forKey: .eventData)
         try container.encodeIfPresent(userId, forKey: .userId)
