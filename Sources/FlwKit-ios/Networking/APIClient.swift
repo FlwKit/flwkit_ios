@@ -43,6 +43,10 @@ class APIClient {
             urlString += "?userId=\(userId)"
         }
         
+        #if DEBUG
+        print("FlwKit: Fetching active flow from \(urlString)")
+        #endif
+        
         guard let url = URL(string: urlString) else {
             completion(.failure(FlwKitError.invalidURL))
             return
@@ -95,16 +99,56 @@ class APIClient {
                 }
                 
             case .failure(let error):
-                // Handle 404 specifically for "no active flow"
-                if case FlwKitError.httpError(let statusCode) = error, statusCode == 404 {
+                // Extract status code from error
+                let statusCode: Int?
+                if case FlwKitError.httpError(let code) = error {
+                    statusCode = code
+                } else {
+                    statusCode = nil
+                }
+                
+                // Handle 401 Unauthorized (invalid API key)
+                if statusCode == 401 {
+                    #if DEBUG
+                    print("FlwKit: Unauthorized (401) - Invalid or missing API key")
+                    print("FlwKit: Make sure the API key is correct and has access to the app")
+                    #endif
+                    completion(.failure(error))
+                    return
+                }
+                
+                // Handle 404 Not Found (no active flow)
+                if statusCode == 404 {
                     // Try to use cached flow as fallback
                     if let cachedFlow = self.cache.getFlow(flowKey: "active-flow") {
+                        #if DEBUG
+                        print("FlwKit: Using cached active flow (404 from server - no active flow found)")
+                        #endif
                         analytics.setFlowContext(flowId: cachedFlow.id, flowVersionId: nil)
                         analytics.setABTestContext(testId: nil, variantId: nil)
                         completion(.success(cachedFlow))
                     } else {
+                        #if DEBUG
+                        print("FlwKit: No active flow found (404) and no cached flow available")
+                        print("FlwKit: Backend returned: No active flow found for this app")
+                        print("FlwKit: Make sure:")
+                        print("  1. A flow is marked as active in the dashboard")
+                        print("  2. The active flow has a published version")
+                        print("  3. The API key is correct and has access to the app")
+                        #endif
                         completion(.failure(FlwKitError.flowNotFound))
                     }
+                    return
+                }
+                
+                // For other errors, try cache as fallback
+                if let cachedFlow = self.cache.getFlow(flowKey: "active-flow") {
+                    #if DEBUG
+                    print("FlwKit: Using cached active flow due to error: \(error)")
+                    #endif
+                    analytics.setFlowContext(flowId: cachedFlow.id, flowVersionId: nil)
+                    analytics.setABTestContext(testId: nil, variantId: nil)
+                    completion(.success(cachedFlow))
                 } else {
                     completion(.failure(error))
                 }
@@ -232,8 +276,39 @@ class APIClient {
             }
             
             guard (200...299).contains(httpResponse.statusCode) else {
-                // Try cache on error
+                #if DEBUG
+                print("FlwKit: HTTP error \(httpResponse.statusCode) when fetching active flow from \(url.absoluteString)")
+                if let data = data, let responseString = String(data: data, encoding: .utf8) {
+                    print("FlwKit: Response body: \(responseString)")
+                }
+                #endif
+                
+                // Handle specific error codes
+                if httpResponse.statusCode == 401 {
+                    // Unauthorized: Invalid or missing API key
+                    completion(.failure(FlwKitError.httpError(401)))
+                    return
+                }
+                
+                if httpResponse.statusCode == 404 {
+                    // No active flow found - try cache as fallback
+                    if let cachedFlow = self?.cache.getFlow(flowKey: "active-flow") {
+                        #if DEBUG
+                        print("FlwKit: Using cached active flow (404 from server)")
+                        #endif
+                        completion(.success(cachedFlow))
+                    } else {
+                        // Return flowNotFound error for better error message
+                        completion(.failure(FlwKitError.flowNotFound))
+                    }
+                    return
+                }
+                
+                // For other errors, try cache as fallback
                 if let cachedFlow = self?.cache.getFlow(flowKey: "active-flow") {
+                    #if DEBUG
+                    print("FlwKit: Using cached active flow due to HTTP \(httpResponse.statusCode)")
+                    #endif
                     completion(.success(cachedFlow))
                 } else {
                     completion(.failure(FlwKitError.httpError(httpResponse.statusCode)))
@@ -507,7 +582,7 @@ enum FlwKitError: LocalizedError {
         case .httpError(let code):
             return "HTTP error: \(code)"
         case .flowNotFound:
-            return "Flow not found"
+            return "No active flow found. Please ensure a flow is marked as active in the dashboard."
         case .themeNotFound:
             return "Theme not found"
         }
