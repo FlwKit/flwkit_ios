@@ -345,8 +345,37 @@ class Analytics {
                 if let data = data, let responseString = String(data: data, encoding: .utf8) {
                     print("FlwKit Analytics: Response: \(responseString)")
                 }
-                // Don't retry 400 Bad Request (client error)
-                completion(httpResponse.statusCode != 400)
+                
+                // Handle specific error codes
+                switch httpResponse.statusCode {
+                case 400:
+                    // Bad Request - invalid data, don't retry
+                    #if DEBUG
+                    print("FlwKit Analytics: Bad Request (400) - Invalid event data, not retrying")
+                    #endif
+                    completion(false) // Don't retry
+                case 401:
+                    // Unauthorized - invalid API key, don't retry
+                    #if DEBUG
+                    print("FlwKit Analytics: Unauthorized (401) - Invalid API key, not retrying")
+                    #endif
+                    completion(false) // Don't retry
+                case 429:
+                    // Rate limited - queue for retry with backoff
+                    #if DEBUG
+                    print("FlwKit Analytics: Rate Limited (429) - Will retry with backoff")
+                    #endif
+                    completion(true) // Retry with backoff
+                case 500...599:
+                    // Server errors - retry
+                    #if DEBUG
+                    print("FlwKit Analytics: Server Error (\(httpResponse.statusCode)) - Will retry")
+                    #endif
+                    completion(true) // Retry
+                default:
+                    // Other errors - retry
+                    completion(true) // Retry
+                }
             }
         }.resume()
     }
@@ -380,16 +409,25 @@ class Analytics {
 }
 
 /// Analytics event payload matching backend specification
+/// 
+/// Critical Fields for Analytics Charts:
+/// - flowId: Required for flow-level analytics (in payload, not eventData)
+/// - flowVersionId: Required for version-specific analytics (in payload, not eventData)
+/// - experimentId: Required for variant comparison charts (in payload, not eventData)
+/// - variantId: Required for variant comparison charts (in payload, not eventData)
+/// - sessionId: Required for session tracking and funnel analytics (in payload)
+/// - eventData.screenId: Required for screen_view events (in eventData, not payload)
+/// - timestamp: Required for accurate time series charts (ISO 8601 format)
 struct AnalyticsEventPayload: Codable {
     let flowId: String?
     let flowVersionId: String?
-    let experimentId: String? // NEW: Experiment ID for A/B testing
-    let variantId: String?    // NEW: Variant ID for A/B testing
+    let experimentId: String? // Experiment ID for A/B testing (required for variant comparison charts)
+    let variantId: String?    // Variant ID for A/B testing (required for variant comparison charts)
     let eventType: String
-    let eventData: [String: AnyCodable]
+    let eventData: [String: AnyCodable] // Event-specific data (e.g., screenId for screen_view events)
     let userId: String?
-    let sessionId: String
-    let timestamp: String // ISO 8601 string format
+    let sessionId: String // Required for session tracking and funnel analytics
+    let timestamp: String // ISO 8601 string format (required for time series charts)
     
     enum CodingKeys: String, CodingKey {
         case flowId
