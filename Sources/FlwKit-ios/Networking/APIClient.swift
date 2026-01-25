@@ -43,10 +43,6 @@ class APIClient {
             urlString += "?userId=\(userId)"
         }
         
-        #if DEBUG
-        print("FlwKit: Fetching active flow from \(urlString)")
-        #endif
-        
         guard let url = URL(string: urlString) else {
             completion(.failure(FlwKitError.invalidURL))
             return
@@ -109,10 +105,6 @@ class APIClient {
                 
                 // Handle 401 Unauthorized (invalid API key)
                 if statusCode == 401 {
-                    #if DEBUG
-                    print("FlwKit: Unauthorized (401) - Invalid or missing API key")
-                    print("FlwKit: Make sure the API key is correct and has access to the app")
-                    #endif
                     completion(.failure(error))
                     return
                 }
@@ -121,21 +113,10 @@ class APIClient {
                 if statusCode == 404 {
                     // Try to use cached flow as fallback
                     if let cachedFlow = self.cache.getFlow(flowKey: "active-flow") {
-                        #if DEBUG
-                        print("FlwKit: Using cached active flow (404 from server - no active flow found)")
-                        #endif
                         analytics.setFlowContext(flowId: cachedFlow.id, flowVersionId: nil)
                         analytics.setABTestContext(testId: nil, variantId: nil)
                         completion(.success(cachedFlow))
                     } else {
-                        #if DEBUG
-                        print("FlwKit: No active flow found (404) and no cached flow available")
-                        print("FlwKit: Backend returned: No active flow found for this app")
-                        print("FlwKit: Make sure:")
-                        print("  1. A flow is marked as active in the dashboard")
-                        print("  2. The active flow has a published version")
-                        print("  3. The API key is correct and has access to the app")
-                        #endif
                         completion(.failure(FlwKitError.flowNotFound))
                     }
                     return
@@ -143,9 +124,6 @@ class APIClient {
                 
                 // For other errors, try cache as fallback
                 if let cachedFlow = self.cache.getFlow(flowKey: "active-flow") {
-                    #if DEBUG
-                    print("FlwKit: Using cached active flow due to error: \(error)")
-                    #endif
                     analytics.setFlowContext(flowId: cachedFlow.id, flowVersionId: nil)
                     analytics.setABTestContext(testId: nil, variantId: nil)
                     completion(.success(cachedFlow))
@@ -197,9 +175,6 @@ class APIClient {
         session.dataTask(with: request) { [weak self] data, response, error in
             // Handle errors gracefully - if A/B test check fails, continue without it
             if let error = error {
-                #if DEBUG
-                print("FlwKit A/B Test: Failed to check variant - \(error.localizedDescription)")
-                #endif
                 completion(nil as ABTestResponse?)
                 return
             }
@@ -224,9 +199,6 @@ class APIClient {
             }
             
             guard (200...299).contains(httpResponse.statusCode), let data = data else {
-                #if DEBUG
-                print("FlwKit A/B Test: HTTP error \(httpResponse.statusCode)")
-                #endif
                 completion(nil as ABTestResponse?)
                 return
             }
@@ -245,9 +217,6 @@ class APIClient {
                 
                 completion(abTestResponse)
             } catch {
-                #if DEBUG
-                print("FlwKit A/B Test: Failed to decode response - \(error)")
-                #endif
                 completion(nil)
             }
         }.resume()
@@ -276,13 +245,6 @@ class APIClient {
             }
             
             guard (200...299).contains(httpResponse.statusCode) else {
-                #if DEBUG
-                print("FlwKit: HTTP error \(httpResponse.statusCode) when fetching active flow from \(url.absoluteString)")
-                if let data = data, let responseString = String(data: data, encoding: .utf8) {
-                    print("FlwKit: Response body: \(responseString)")
-                }
-                #endif
-                
                 // Handle specific error codes
                 if httpResponse.statusCode == 401 {
                     // Unauthorized: Invalid or missing API key
@@ -293,9 +255,6 @@ class APIClient {
                 if httpResponse.statusCode == 404 {
                     // No active flow found - try cache as fallback
                     if let cachedFlow = self?.cache.getFlow(flowKey: "active-flow") {
-                        #if DEBUG
-                        print("FlwKit: Using cached active flow (404 from server)")
-                        #endif
                         completion(.success(cachedFlow))
                     } else {
                         // Return flowNotFound error for better error message
@@ -306,9 +265,6 @@ class APIClient {
                 
                 // For other errors, try cache as fallback
                 if let cachedFlow = self?.cache.getFlow(flowKey: "active-flow") {
-                    #if DEBUG
-                    print("FlwKit: Using cached active flow due to HTTP \(httpResponse.statusCode)")
-                    #endif
                     completion(.success(cachedFlow))
                 } else {
                     completion(.failure(FlwKitError.httpError(httpResponse.statusCode)))
@@ -340,23 +296,6 @@ class APIClient {
                 
                 completion(.success(flow))
             } catch {
-                #if DEBUG
-                print("FlwKit Decoding Error: \(error)")
-                if let decodingError = error as? DecodingError {
-                    switch decodingError {
-                    case .typeMismatch(let type, let context):
-                        print("Type mismatch: Expected \(type) at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
-                    case .valueNotFound(let type, let context):
-                        print("Value not found: Expected \(type) at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
-                    case .keyNotFound(let key, let context):
-                        print("Key not found: \(key.stringValue) at path: \(context.codingPath.map { $0.stringValue }.joined(separator: "."))")
-                    case .dataCorrupted(let context):
-                        print("Data corrupted at path: \(context.codingPath.map { $0.stringValue }.joined(separator: ".")) - \(context.debugDescription)")
-                    @unknown default:
-                        print("Unknown decoding error")
-                    }
-                }
-                #endif
                 completion(.failure(error))
             }
         }.resume()
@@ -437,7 +376,7 @@ class FlowCache {
             let data = try encoder.encode(flow)
             userDefaults.set(data, forKey: key)
         } catch {
-            print("FlwKit: Failed to cache flow - \(error)")
+            // Failed to cache flow
         }
     }
     
@@ -451,7 +390,6 @@ class FlowCache {
             let decoder = JSONDecoder()
             return try decoder.decode(Flow.self, from: data)
         } catch {
-            print("FlwKit: Failed to decode cached flow - \(error)")
             return nil
         }
     }
@@ -463,7 +401,7 @@ class FlowCache {
             let data = try encoder.encode(theme)
             userDefaults.set(data, forKey: key)
         } catch {
-            print("FlwKit: Failed to cache theme - \(error)")
+            // Failed to cache theme
         }
     }
     
@@ -477,7 +415,6 @@ class FlowCache {
             let decoder = JSONDecoder()
             return try decoder.decode(Theme.self, from: data)
         } catch {
-            print("FlwKit: Failed to decode cached theme - \(error)")
             return nil
         }
     }

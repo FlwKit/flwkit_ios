@@ -90,7 +90,6 @@ class Analytics {
         let randomString = UUID().uuidString.prefix(9).replacingOccurrences(of: "-", with: "")
         let newSessionId = "session_\(timestamp)_\(randomString)"
         userDefaults.set(newSessionId, forKey: sessionIdKey)
-        print("FlwKit Analytics: Created new session ID - \(newSessionId)")
         return newSessionId
     }
     
@@ -109,7 +108,6 @@ class Analytics {
     /// Track a generic event
     func trackEvent(eventType: String, eventData: [String: Any]) {
         guard apiKey != nil else {
-            print("FlwKit Analytics: Cannot track event '\(eventType)' - API key not configured. Make sure FlwKit.configure() is called.")
             return
         }
         
@@ -124,8 +122,6 @@ class Analytics {
             sessionId: sessionId ?? getOrCreateSessionId(),
             timestamp: Date()
         )
-        
-        print("FlwKit Analytics: Tracking event '\(eventType)'")
         
         queueLock.lock()
         eventQueue.append(payload)
@@ -266,7 +262,6 @@ class Analytics {
         }
         
         guard let apiKey = apiKey else {
-            print("FlwKit Analytics: API key not configured, events will be queued")
             isProcessing = false
             queueLock.unlock()
             return
@@ -302,7 +297,6 @@ class Analytics {
     
     private func sendEvent(_ event: AnalyticsEventPayload, apiKey: String, completion: @escaping (Bool) -> Void) {
         guard let url = URL(string: "\(baseURL)/sdk/v1/events") else {
-            print("FlwKit Analytics: Invalid URL - \(baseURL)/sdk/v1/events")
             completion(false)
             return
         }
@@ -315,67 +309,39 @@ class Analytics {
         do {
             let encoder = JSONEncoder()
             request.httpBody = try encoder.encode(event)
-            
-            // Debug: Print event being sent
-            if let jsonData = try? encoder.encode(event),
-               let jsonString = String(data: jsonData, encoding: .utf8) {
-                print("FlwKit Analytics: Sending event - \(event.eventType)")
-                print("FlwKit Analytics: Event data - \(jsonString)")
-            }
         } catch {
-            print("FlwKit Analytics: Failed to encode analytics event - \(error)")
             completion(false)
             return
         }
         
         session.dataTask(with: request) { data, response, error in
             if let error = error {
-                print("FlwKit Analytics: Failed to send analytics event - \(error.localizedDescription)")
                 completion(false)
                 return
             }
             
             guard let httpResponse = response as? HTTPURLResponse else {
-                print("FlwKit Analytics: Invalid response")
                 completion(false)
                 return
             }
             
             // Accept 201 Created as success (per backend spec)
             if httpResponse.statusCode == 201 || (200...299).contains(httpResponse.statusCode) {
-                print("FlwKit Analytics: Event '\(event.eventType)' sent successfully (HTTP \(httpResponse.statusCode))")
                 completion(true)
             } else {
-                print("FlwKit Analytics: Failed to track event '\(event.eventType)': HTTP \(httpResponse.statusCode)")
-                if let data = data, let responseString = String(data: data, encoding: .utf8) {
-                    print("FlwKit Analytics: Response: \(responseString)")
-                }
-                
                 // Handle specific error codes
                 switch httpResponse.statusCode {
                 case 400:
                     // Bad Request - invalid data, don't retry
-                    #if DEBUG
-                    print("FlwKit Analytics: Bad Request (400) - Invalid event data, not retrying")
-                    #endif
                     completion(false) // Don't retry
                 case 401:
                     // Unauthorized - invalid API key, don't retry
-                    #if DEBUG
-                    print("FlwKit Analytics: Unauthorized (401) - Invalid API key, not retrying")
-                    #endif
                     completion(false) // Don't retry
                 case 429:
                     // Rate limited - queue for retry with backoff
-                    #if DEBUG
-                    print("FlwKit Analytics: Rate Limited (429) - Will retry with backoff")
-                    #endif
                     completion(true) // Retry with backoff
                 case 500...599:
                     // Server errors - retry
-                    #if DEBUG
-                    print("FlwKit Analytics: Server Error (\(httpResponse.statusCode)) - Will retry")
-                    #endif
                     completion(true) // Retry
                 default:
                     // Other errors - retry
@@ -394,7 +360,7 @@ class Analytics {
             let data = try encoder.encode(eventQueue)
             userDefaults.set(data, forKey: queueKey)
         } catch {
-            print("FlwKit: Failed to save analytics queue - \(error)")
+            // Failed to save queue
         }
     }
     
@@ -407,7 +373,6 @@ class Analytics {
             let decoder = JSONDecoder()
             eventQueue = try decoder.decode([AnalyticsEventPayload].self, from: data)
         } catch {
-            print("FlwKit: Failed to load analytics queue - \(error)")
             eventQueue = []
         }
     }

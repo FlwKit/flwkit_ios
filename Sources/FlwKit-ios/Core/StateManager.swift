@@ -16,7 +16,7 @@ class StateManager {
             let data = try encoder.encode(state)
             userDefaults.set(data, forKey: key)
         } catch {
-            print("FlwKit: Failed to save state - \(error)")
+            // Failed to save state
         }
     }
     
@@ -31,7 +31,6 @@ class StateManager {
             let decoder = JSONDecoder()
             return try decoder.decode(FlowState.self, from: data)
         } catch {
-            print("FlwKit: Failed to load state - \(error)")
             return nil
         }
     }

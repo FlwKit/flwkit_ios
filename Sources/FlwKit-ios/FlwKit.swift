@@ -91,8 +91,7 @@ public struct FlwKit {
 /// With completion handler:
 /// ```swift
 /// FlwKitFlowView { result in
-///     print("Flow completed: \(result.flowId)")
-///     print("Answers: \(result.answers)")
+///     // Handle completion
 ///     router.navigate(to: .home)
 /// }
 /// ```
