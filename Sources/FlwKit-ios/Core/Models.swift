@@ -70,12 +70,37 @@ public struct Screen: Codable {
     public let blocks: [Block]
     public let spacing: Double? // Vertical spacing between blocks in pixels (default: 16)
     
-    public init(id: String, type: String = "standard", themeId: String? = nil, blocks: [Block], spacing: Double? = nil) {
+    // Background properties
+    public let backgroundColor: String? // Hex color for solid background
+    public let backgroundOpacity: Double? // 0-100 (percentage)
+    public let backgroundType: String? // "solid" | "gradient"
+    public let gradientStartColor: String? // Hex color for gradient start
+    public let gradientStartOpacity: Double? // 0-100 (percentage)
+    public let gradientEndColor: String? // Hex color for gradient end
+    public let gradientEndOpacity: Double? // 0-100 (percentage)
+    public let gradientAngle: Double? // 0-360 degrees
+    
+    enum CodingKeys: String, CodingKey {
+        case id, type, themeId, blocks, spacing
+        case backgroundColor, backgroundOpacity, backgroundType
+        case gradientStartColor, gradientStartOpacity
+        case gradientEndColor, gradientEndOpacity, gradientAngle
+    }
+    
+    public init(id: String, type: String = "standard", themeId: String? = nil, blocks: [Block], spacing: Double? = nil, backgroundColor: String? = nil, backgroundOpacity: Double? = nil, backgroundType: String? = nil, gradientStartColor: String? = nil, gradientStartOpacity: Double? = nil, gradientEndColor: String? = nil, gradientEndOpacity: Double? = nil, gradientAngle: Double? = nil) {
         self.id = id
         self.type = type
         self.themeId = themeId
         self.blocks = blocks
         self.spacing = spacing
+        self.backgroundColor = backgroundColor
+        self.backgroundOpacity = backgroundOpacity
+        self.backgroundType = backgroundType
+        self.gradientStartColor = gradientStartColor
+        self.gradientStartOpacity = gradientStartOpacity
+        self.gradientEndColor = gradientEndColor
+        self.gradientEndOpacity = gradientEndOpacity
+        self.gradientAngle = gradientAngle
     }
 }
 
@@ -510,9 +535,30 @@ public struct Theme: Codable {
     public let id: String
     public let tokens: ThemeTokens
     
-    public init(id: String, tokens: ThemeTokens) {
+    // Background properties
+    public let backgroundType: String? // "solid" | "gradient"
+    public let gradientStartColor: String? // Hex color for gradient start
+    public let gradientStartOpacity: Double? // 0-100 (percentage)
+    public let gradientEndColor: String? // Hex color for gradient end
+    public let gradientEndOpacity: Double? // 0-100 (percentage)
+    public let gradientAngle: Double? // 0-360 degrees
+    
+    enum CodingKeys: String, CodingKey {
+        case id, tokens
+        case backgroundType
+        case gradientStartColor, gradientStartOpacity
+        case gradientEndColor, gradientEndOpacity, gradientAngle
+    }
+    
+    public init(id: String, tokens: ThemeTokens, backgroundType: String? = nil, gradientStartColor: String? = nil, gradientStartOpacity: Double? = nil, gradientEndColor: String? = nil, gradientEndOpacity: Double? = nil, gradientAngle: Double? = nil) {
         self.id = id
         self.tokens = tokens
+        self.backgroundType = backgroundType
+        self.gradientStartColor = gradientStartColor
+        self.gradientStartOpacity = gradientStartOpacity
+        self.gradientEndColor = gradientEndColor
+        self.gradientEndOpacity = gradientEndOpacity
+        self.gradientAngle = gradientAngle
     }
 }
 
