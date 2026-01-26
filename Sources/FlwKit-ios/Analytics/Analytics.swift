@@ -105,6 +105,17 @@ class Analytics {
         sessionId = getOrCreateSessionId()
     }
     
+    /// Generate a new session ID for flow start
+    /// This should be called when a flow starts to ensure a fresh session ID
+    func generateNewSessionId() -> String {
+        let timestamp = Int(Date().timeIntervalSince1970 * 1000)
+        let randomString = UUID().uuidString.prefix(9).replacingOccurrences(of: "-", with: "")
+        let newSessionId = "session_\(timestamp)_\(randomString)"
+        self.sessionId = newSessionId
+        userDefaults.set(newSessionId, forKey: sessionIdKey)
+        return newSessionId
+    }
+    
     /// Track a generic event
     func trackEvent(eventType: String, eventData: [String: Any]) {
         guard apiKey != nil else {

@@ -8,6 +8,7 @@ struct FlowView: View {
     @State private var error: Error?
     @State private var flowStartTime: Date?
     @State private var screenEnterTime: Date?
+    @State private var hasTrackedFlowStart: Bool = false
     
     let attributes: [String: Any]
     let onComplete: ((FlwKitCompletionResult) -> Void)?
@@ -70,6 +71,13 @@ struct FlowView: View {
                     onAction: handleAction
                 )
                 .onAppear {
+                    // Track flow_start before first screen_view (critical for proper sequencing)
+                    if !hasTrackedFlowStart {
+                        trackFlowStart()
+                        hasTrackedFlowStart = true
+                    }
+                    // Track screen view (entry screen view is tracked after flow_start)
+                    // Events are queued in order, so flow_start will be sent before screen_view
                     trackScreenView(screen: screen)
                     screenEnterTime = Date()
                 }
@@ -80,9 +88,6 @@ struct FlowView: View {
                         handleFlowComplete()
                     }
             }
-        }
-        .onAppear {
-            trackFlowStart()
         }
     }
     
@@ -250,9 +255,13 @@ struct FlowView: View {
     private func trackFlowStart() {
         flowStartTime = Date()
         
+        // Generate a new session ID for this flow (critical for screen analytics)
+        _ = analytics.generateNewSessionId()
+        
         // Set flow context for analytics
         analytics.setFlowContext(flowId: flow.id, flowVersionId: "\(flow.version)")
         
+        // Track flow start event
         analytics.trackFlowStart(
             flowKey: currentState.flowKey,
             entryScreenId: flow.entryScreenId
@@ -260,12 +269,23 @@ struct FlowView: View {
     }
     
     private func trackScreenView(screen: Screen) {
-        let screenName = screen.type.capitalized // Use screen type as name, or could be enhanced
+        // Generate screen name: use screen type or fallback to "Screen {index}"
+        let screenName: String = {
+            // Try to get name from screen blocks (header block title)
+            if let headerBlock = screen.blocks.first(where: { $0.type == "header" }),
+               let title = headerBlock.title {
+                return title
+            }
+            // Fallback to screen type or generic name
+            return screen.type.capitalized.isEmpty ? "Screen \(currentScreenIndex + 1)" : screen.type.capitalized
+        }()
+        
+        // Track screen view with all required fields
         analytics.trackScreenView(
-            screenId: screen.id,
-            screenName: screenName,
-            screenIndex: currentScreenIndex,
-            totalScreens: flow.screens.count
+            screenId: screen.id,                    // REQUIRED: Exact screen ID from flow data
+            screenName: screenName,                  // REQUIRED: Human-readable name
+            screenIndex: currentScreenIndex,         // RECOMMENDED: Position in flow
+            totalScreens: flow.screens.count         // RECOMMENDED: Total screens
         )
     }
     
