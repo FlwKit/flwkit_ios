@@ -104,18 +104,65 @@ struct HeaderBlockRenderer: BlockRenderer {
         return AnyView(
             VStack(alignment: alignment, spacing: Spacing.sm.value) {
                 if let title = block.title {
-                    Text(title)
-                        .font(titleFont)
-                        .foregroundColor(textColor)
-                        .kerning(letterSpacing ?? 0) // Use kerning instead of tracking for iOS 15 compatibility
+                    if #available(iOS 16.0, *) {
+                        Text(title)
+                            .font(titleFont)
+                            .foregroundColor(textColor)
+                            .kerning(letterSpacing ?? 0)
+                    } else {
+                        // iOS 15: Use TextWithLetterSpacing for letter spacing support
+                        let uiFont: UIFont = {
+                            if isItalic {
+                                let descriptor = UIFont.systemFont(ofSize: CGFloat(fontSize), weight: fontWeight == .bold ? .bold : .regular).fontDescriptor.withSymbolicTraits(.traitItalic)
+                                if let descriptor = descriptor {
+                                    return UIFont(descriptor: descriptor, size: CGFloat(fontSize))
+                                }
+                            }
+                            return UIFont.systemFont(ofSize: CGFloat(fontSize), weight: fontWeight == .bold ? .bold : .regular)
+                        }()
+                        let titleNSAlignment: NSTextAlignment = {
+                            switch block.align?.lowercased() {
+                            case "center": return .center
+                            case "right": return .right
+                            default: return .left
+                            }
+                        }()
+                        TextWithLetterSpacing(
+                            text: title,
+                            font: uiFont,
+                            color: UIColor(textColor),
+                            letterSpacing: letterSpacing ?? 0,
+                            textAlignment: titleNSAlignment
+                        )
+                    }
                 }
                 if let subtitle = block.subtitle {
-                    Text(subtitle)
-                        .font(.system(size: CGFloat(subtitleFontSize)))
-                        .foregroundColor(subtitleColor)
-                        .multilineTextAlignment(subtitleAlignment)
-                        .kerning(subtitleSpacing)
+                    if #available(iOS 16.0, *) {
+                        Text(subtitle)
+                            .font(.system(size: CGFloat(subtitleFontSize)))
+                            .foregroundColor(subtitleColor)
+                            .multilineTextAlignment(subtitleAlignment)
+                            .kerning(subtitleSpacing)
+                            .frame(maxWidth: .infinity, alignment: subtitleFrameAlignment)
+                    } else {
+                        // iOS 15: Use TextWithLetterSpacing for letter spacing support
+                        let subtitleUIFont = UIFont.systemFont(ofSize: CGFloat(subtitleFontSize))
+                        let subtitleNSAlignment: NSTextAlignment = {
+                            switch subtitleAlignment {
+                            case .center: return .center
+                            case .trailing: return .right
+                            default: return .left
+                            }
+                        }()
+                        TextWithLetterSpacing(
+                            text: subtitle,
+                            font: subtitleUIFont,
+                            color: UIColor(subtitleColor),
+                            letterSpacing: subtitleSpacing,
+                            textAlignment: subtitleNSAlignment
+                        )
                         .frame(maxWidth: .infinity, alignment: subtitleFrameAlignment)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: alignment == .leading ? .leading : (alignment == .center ? .center : .trailing))

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 class ThemeManager {
     static let shared = ThemeManager()
@@ -177,6 +178,69 @@ extension Color {
         return Color(hex: colorString)
     }
 }
+
+// MARK: - Text with Letter Spacing (iOS 15 Compatible)
+
+struct TextWithLetterSpacing: UIViewRepresentable {
+    let text: String
+    let font: UIFont
+    let color: UIColor
+    let letterSpacing: CGFloat
+    let textAlignment: NSTextAlignment
+    
+    init(text: String, font: UIFont, color: UIColor, letterSpacing: CGFloat, textAlignment: NSTextAlignment = .left) {
+        self.text = text
+        self.font = font
+        self.color = color
+        self.letterSpacing = letterSpacing
+        self.textAlignment = textAlignment
+    }
+    
+    func makeUIView(context: Context) -> UILabel {
+        let label = UILabel()
+        label.numberOfLines = 0
+        return label
+    }
+    
+    func updateUIView(_ uiView: UILabel, context: Context) {
+        let attributedString = NSMutableAttributedString(string: text)
+        
+        // Apply font
+        attributedString.addAttribute(
+            .font,
+            value: font,
+            range: NSRange(location: 0, length: text.count)
+        )
+        
+        // Apply color
+        attributedString.addAttribute(
+            .foregroundColor,
+            value: color,
+            range: NSRange(location: 0, length: text.count)
+        )
+        
+        // Apply letter spacing
+        if letterSpacing != 0 {
+            attributedString.addAttribute(
+                .kern,
+                value: letterSpacing,
+                range: NSRange(location: 0, length: text.count)
+            )
+        }
+        
+        // Create paragraph style for text alignment
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = textAlignment
+        attributedString.addAttribute(
+            .paragraphStyle,
+            value: paragraphStyle,
+            range: NSRange(location: 0, length: text.count)
+        )
+        
+        uiView.attributedText = attributedString
+    }
+}
+
 
 // MARK: - Spacing Tokens
 
