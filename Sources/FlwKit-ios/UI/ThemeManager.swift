@@ -121,6 +121,61 @@ extension Color {
             opacity: Double(a) / 255
         )
     }
+    
+    /// Parse rgba color string (e.g., "rgba(156, 163, 175, 0.8)")
+    static func fromRgba(_ rgbaString: String) -> Color? {
+        let pattern = #"rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
+            return nil
+        }
+        
+        let nsString = rgbaString as NSString
+        let range = NSRange(location: 0, length: nsString.length)
+        guard let match = regex.firstMatch(in: rgbaString, range: range) else {
+            return nil
+        }
+        
+        guard let r = Double(nsString.substring(with: match.range(at: 1))),
+              let g = Double(nsString.substring(with: match.range(at: 2))),
+              let b = Double(nsString.substring(with: match.range(at: 3))),
+              let a = Double(nsString.substring(with: match.range(at: 4))) else {
+            return nil
+        }
+        
+        return Color(
+            .sRGB,
+            red: r / 255.0,
+            green: g / 255.0,
+            blue: b / 255.0,
+            opacity: a
+        )
+    }
+    
+    /// Resolve subtitle color with proper handling of hex/rgba and opacity
+    static func resolveSubtitleColor(
+        subtitleColor: String?,
+        subtitleOpacity: Double?,
+        themeTextSecondary: String
+    ) -> Color {
+        guard let colorString = subtitleColor else {
+            // Fallback to theme's textSecondary
+            return Color(hex: themeTextSecondary)
+        }
+        
+        // If rgba, parse it directly (ignore subtitleOpacity)
+        if colorString.hasPrefix("rgba") {
+            return Color.fromRgba(colorString) ?? Color(hex: themeTextSecondary)
+        }
+        
+        // If hex with opacity < 100, convert to rgba
+        if colorString.hasPrefix("#"), let opacity = subtitleOpacity, opacity < 100 {
+            let color = Color(hex: colorString)
+            return color.opacity(opacity / 100.0)
+        }
+        
+        // Otherwise, use hex directly
+        return Color(hex: colorString)
+    }
 }
 
 // MARK: - Spacing Tokens

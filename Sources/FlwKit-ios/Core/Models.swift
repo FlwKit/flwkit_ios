@@ -122,6 +122,13 @@ public struct Block: Codable {
     public let fontSize: Double? // Font size in pixels (default: 24)
     public let spacing: Double? // Letter spacing in pixels (default: undefined)
     
+    // Subtitle styling
+    public let subtitleColor: String? // Hex (#RRGGBB) or rgba(r, g, b, a)
+    public let subtitleOpacity: Double? // 0-100 (only used if subtitleColor is hex)
+    public let subtitleFontSize: Double? // 8-200 pixels (default: 16)
+    public let subtitleAlign: String? // 'left' | 'center' | 'right' (inherits from align if not set)
+    public let subtitleSpacing: Double? // Letter spacing in pixels (default: 0)
+    
     // Media block
     public let url: String? // Resolved URL from backend (replaces imageUrl)
     public let imageUrl: String? // Legacy support
@@ -204,6 +211,7 @@ public struct Block: Codable {
         case imageUrl = "image_url"
         case videoUrl = "video_url"
         case aspect, align, width
+        case subtitleColor, subtitleOpacity, subtitleFontSize, subtitleAlign, subtitleSpacing
         case height // Used by both media and spacer blocks (as Double)
         case padding, margin
         case borderRadius = "borderRadius"
@@ -252,6 +260,13 @@ public struct Block: Codable {
         fontStyle = try container.decodeIfPresent(String.self, forKey: .fontStyle)
         fontSize = try container.decodeIfPresent(Double.self, forKey: .fontSize)
         spacing = try container.decodeIfPresent(Double.self, forKey: .spacing)
+        
+        // Subtitle styling properties
+        subtitleColor = try container.decodeIfPresent(String.self, forKey: .subtitleColor)
+        subtitleOpacity = try container.decodeIfPresent(Double.self, forKey: .subtitleOpacity)
+        subtitleFontSize = try container.decodeIfPresent(Double.self, forKey: .subtitleFontSize)
+        subtitleAlign = try container.decodeIfPresent(String.self, forKey: .subtitleAlign)
+        subtitleSpacing = try container.decodeIfPresent(Double.self, forKey: .subtitleSpacing)
         
         // Try to decode URL - check multiple possible field names
         url = try container.decodeIfPresent(String.self, forKey: .url)
@@ -376,6 +391,11 @@ public struct Block: Codable {
         try container.encodeIfPresent(fontStyle, forKey: .fontStyle)
         try container.encodeIfPresent(fontSize, forKey: .fontSize)
         try container.encodeIfPresent(spacing, forKey: .spacing)
+        try container.encodeIfPresent(subtitleColor, forKey: .subtitleColor)
+        try container.encodeIfPresent(subtitleOpacity, forKey: .subtitleOpacity)
+        try container.encodeIfPresent(subtitleFontSize, forKey: .subtitleFontSize)
+        try container.encodeIfPresent(subtitleAlign, forKey: .subtitleAlign)
+        try container.encodeIfPresent(subtitleSpacing, forKey: .subtitleSpacing)
         try container.encodeIfPresent(url, forKey: .url)
         try container.encodeIfPresent(imageUrl, forKey: .imageUrl)
         try container.encodeIfPresent(videoUrl, forKey: .videoUrl)

@@ -63,6 +63,44 @@ struct HeaderBlockRenderer: BlockRenderer {
             return .system(size: CGFloat(fontSize), weight: fontWeight)
         }()
         
+        // Resolve subtitle styling
+        let subtitleColor: Color = {
+            Color.resolveSubtitleColor(
+                subtitleColor: block.subtitleColor,
+                subtitleOpacity: block.subtitleOpacity,
+                themeTextSecondary: tokens.textSecondary
+            )
+        }()
+        
+        let subtitleFontSize = block.subtitleFontSize ?? 16.0
+        
+        // Resolve subtitle alignment (inherits from block.align if not set)
+        let subtitleAlignString = block.subtitleAlign ?? block.align ?? "left"
+        let subtitleAlignment: TextAlignment = {
+            switch subtitleAlignString.lowercased() {
+            case "center":
+                return .center
+            case "right":
+                return .trailing
+            default:
+                return .leading
+            }
+        }()
+        
+        // Convert subtitle alignment to Alignment for frame
+        let subtitleFrameAlignment: Alignment = {
+            switch subtitleAlignString.lowercased() {
+            case "center":
+                return .center
+            case "right":
+                return .trailing
+            default:
+                return .leading
+            }
+        }()
+        
+        let subtitleSpacing: CGFloat = CGFloat(block.subtitleSpacing ?? 0)
+        
         return AnyView(
             VStack(alignment: alignment, spacing: Spacing.sm.value) {
                 if let title = block.title {
@@ -73,8 +111,11 @@ struct HeaderBlockRenderer: BlockRenderer {
                 }
                 if let subtitle = block.subtitle {
                     Text(subtitle)
-                        .font(.system(size: 16))
-                        .foregroundColor(tokens.textSecondaryColor)
+                        .font(.system(size: CGFloat(subtitleFontSize)))
+                        .foregroundColor(subtitleColor)
+                        .multilineTextAlignment(subtitleAlignment)
+                        .kerning(subtitleSpacing)
+                        .frame(maxWidth: .infinity, alignment: subtitleFrameAlignment)
                 }
             }
             .frame(maxWidth: .infinity, alignment: alignment == .leading ? .leading : (alignment == .center ? .center : .trailing))
