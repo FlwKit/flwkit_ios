@@ -145,7 +145,7 @@ struct TestimonialBlockRenderer: BlockRenderer {
         // Build the testimonial content
         let testimonialContent = VStack(alignment: alignment, spacing: 0) {
             // Quote
-            Text("\"\(quote)\"")
+                Text("\"\(quote)\"")
                 .font(quoteFont)
                 .kerning(letterSpacing ?? 0) // Use kerning for iOS 15 compatibility
                 .multilineTextAlignment(textAlignment)
@@ -246,8 +246,8 @@ struct TestimonialBlockRenderer: BlockRenderer {
             return AnyView(
                 testimonialContent
                     .frame(maxWidth: .infinity, alignment: alignment == .leading ? .leading : (alignment == .center ? .center : .trailing))
-                    .padding(.horizontal, Spacing.md.value)
-            )
-        }
+            .padding(.horizontal, Spacing.md.value)
+        )
     }
+}
 }

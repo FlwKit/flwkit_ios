@@ -44,7 +44,8 @@ public struct Flow: Codable {
         self.key = payload.flowKey
         self.version = payload.version
         self.entryScreenId = payload.entryScreenId
-        self.screens = payload.screens
+        // Reverse screens array to fix rendering order (backend sends in reverse)
+        self.screens = payload.screens.reversed()
         self.defaultThemeId = payload.defaultThemeId
         self.themes = payload.themes
         self.schemaVersion = payload.schemaVersion

@@ -181,8 +181,8 @@ struct ChoiceBlockView: View {
                         if wasSelected {
                             selectedValues.removeAll()
                             willBeSelected = false
-                        } else {
-                            selectedValues = [option.value]
+                    } else {
+                        selectedValues = [option.value]
                             willBeSelected = true
                         }
                         onAnswer(blockKey, option.value)
