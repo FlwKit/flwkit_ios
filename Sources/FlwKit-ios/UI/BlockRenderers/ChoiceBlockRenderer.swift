@@ -4,18 +4,29 @@ import UIKit
 struct ChoiceBlockRenderer: BlockRenderer {
     func render(block: Block, theme: Theme, state: FlowState, onAnswer: @escaping (String, Any) -> Void, onAction: @escaping (String, String?) -> Void) -> AnyView {
         let blockKey = block.key ?? ""
+        let currentScreenId = state.currentScreenId ?? ""
+        let options = block.options ?? []
         
-        // Restore selection from state
+        // Only restore selection from state if blockKey is not empty
+        // Also verify that the restored values exist in this block's options
+        // This prevents cross-screen state leakage when different screens have choice blocks
         var initialValues: Set<String> = []
-        if let currentAnswer = state.answers[blockKey]?.value {
+        if !blockKey.isEmpty, let currentAnswer = state.answers[blockKey]?.value {
+            // Get the valid option values for this block
+            let validOptionValues = Set(options.map { $0.value })
+            
+            // Only restore if we have a valid blockKey (prevents cross-screen state issues)
             if let singleValue = currentAnswer as? String {
-                initialValues = [singleValue]
+                // Only restore if this option value exists in the current block's options
+                if validOptionValues.contains(singleValue) {
+                    initialValues = [singleValue]
+                }
             } else if let arrayValue = currentAnswer as? [String] {
-                initialValues = Set(arrayValue)
+                // Only restore values that exist in the current block's options
+                initialValues = Set(arrayValue.filter { validOptionValues.contains($0) })
             }
         }
         
-        let screenId = state.currentScreenId ?? ""
         return AnyView(
             ChoiceBlockView(
                 block: block,
@@ -23,7 +34,7 @@ struct ChoiceBlockRenderer: BlockRenderer {
                 initialValues: initialValues,
                 onAnswer: onAnswer,
                 onAction: onAction,
-                screenId: screenId
+                screenId: currentScreenId
             )
         )
     }
