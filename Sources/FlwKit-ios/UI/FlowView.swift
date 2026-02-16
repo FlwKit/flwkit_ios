@@ -158,8 +158,8 @@ struct FlowView: View {
     
     private func handleFlowComplete() {
         let rawAnswers = currentState.answers.mapValues { $0.value }
-        // Map choice option IDs to labels
-        let finalAnswers = mapAnswersToContent(rawAnswers)
+        // Map choice option IDs to labels and order by screen sequence
+        let finalAnswers = mapAnswersToContentOrdered(rawAnswers)
         let timeSpent = flowStartTime.map { Int(Date().timeIntervalSince($0) * 1000) } ?? 0
         let completedAt = Date()
         
@@ -188,9 +188,10 @@ struct FlowView: View {
     }
     
     /// Maps answer IDs to actual content (labels) for choice blocks
+    /// Orders answers by screen sequence to match the flow order
     /// For choice blocks, converts option values (IDs) to option labels (text)
     /// For other blocks (text input, slider), returns the value as-is
-    private func mapAnswersToContent(_ answers: [String: Any]) -> [String: Any] {
+    private func mapAnswersToContentOrdered(_ answers: [String: Any]) -> [String: Any] {
         var mappedAnswers: [String: Any] = [:]
         
         // Build a map of block keys to their blocks for quick lookup
@@ -203,32 +204,40 @@ struct FlowView: View {
             }
         }
         
-        // Process each answer
-        for (key, value) in answers {
-            guard let block = blockMap[key] else {
-                // Block not found, keep original value
-                mappedAnswers[key] = value
-                continue
-            }
-            
-            // Check if this is a choice block
-            if block.type == "choice", let options = block.options {
-                // Create a map of option values to labels
-                let optionMap: [String: String] = Dictionary(uniqueKeysWithValues: options.map { ($0.value, $0.label) })
-                
-                // Map the answer value(s)
-                if let singleValue = value as? String {
-                    // Single select: map the option value to label
-                    mappedAnswers[key] = optionMap[singleValue] ?? singleValue
-                } else if let arrayValue = value as? [String] {
-                    // Multi-select: map each option value to label
-                    mappedAnswers[key] = arrayValue.map { optionMap[$0] ?? $0 }
-                } else {
-                    // Unknown format, keep original
-                    mappedAnswers[key] = value
+        // Iterate through screens in order to preserve answer sequence
+        for screen in flow.screens {
+            for block in screen.blocks {
+                guard let blockKey = block.key,
+                      let rawValue = answers[blockKey] else {
+                    continue
                 }
-            } else {
-                // Not a choice block, keep original value (text input, slider, etc.)
+                
+                // Check if this is a choice block
+                if block.type == "choice", let options = block.options {
+                    // Create a map of option values to labels
+                    let optionMap: [String: String] = Dictionary(uniqueKeysWithValues: options.map { ($0.value, $0.label) })
+                    
+                    // Map the answer value(s)
+                    if let singleValue = rawValue as? String {
+                        // Single select: map the option value to label
+                        mappedAnswers[blockKey] = optionMap[singleValue] ?? singleValue
+                    } else if let arrayValue = rawValue as? [String] {
+                        // Multi-select: map each option value to label
+                        mappedAnswers[blockKey] = arrayValue.map { optionMap[$0] ?? $0 }
+                    } else {
+                        // Unknown format, keep original
+                        mappedAnswers[blockKey] = rawValue
+                    }
+                } else {
+                    // Not a choice block, keep original value (text input, slider, etc.)
+                    mappedAnswers[blockKey] = rawValue
+                }
+            }
+        }
+        
+        // Add any answers that weren't found in the flow (edge case)
+        for (key, value) in answers {
+            if mappedAnswers[key] == nil {
                 mappedAnswers[key] = value
             }
         }
