@@ -205,6 +205,7 @@ struct FlowView: View {
         }
         
         // Iterate through screens in order to preserve answer sequence
+        // (Screens are already reversed in Flow.init, so iterate normally)
         for screen in flow.screens {
             for block in screen.blocks {
                 guard let blockKey = block.key,
