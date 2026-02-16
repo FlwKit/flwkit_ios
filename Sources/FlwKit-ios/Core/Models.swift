@@ -44,9 +44,8 @@ public struct Flow: Codable {
         self.key = payload.flowKey
         self.version = payload.version
         self.entryScreenId = payload.entryScreenId
-        // Reverse screens array to fix display order (backend sends in reverse)
-        // Entry screen is found by ID, so navigation still works correctly
-        self.screens = payload.screens.reversed()
+        // Use screens in the order received from backend
+        self.screens = payload.screens
         self.defaultThemeId = payload.defaultThemeId
         self.themes = payload.themes
         self.schemaVersion = payload.schemaVersion
