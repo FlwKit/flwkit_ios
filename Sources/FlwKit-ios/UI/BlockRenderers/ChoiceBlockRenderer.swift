@@ -10,6 +10,11 @@ struct ChoiceBlockRenderer: BlockRenderer {
         // This ensures each screen's choice block starts fresh
         let initialValues: Set<String> = []
         
+        // Use a unique ID combining screen ID and block key to force SwiftUI to create a new view instance
+        // when the screen changes, preventing state persistence across screens
+        let blockKey = block.key ?? ""
+        let uniqueViewId = "\(currentScreenId)_\(blockKey)"
+        
         return AnyView(
             ChoiceBlockView(
                 block: block,
@@ -19,6 +24,7 @@ struct ChoiceBlockRenderer: BlockRenderer {
                 onAction: onAction,
                 screenId: currentScreenId
             )
+            .id(uniqueViewId) // Force new view instance when screen or block changes
         )
     }
 }
@@ -32,6 +38,7 @@ struct ChoiceBlockView: View {
     let screenId: String
     
     @State private var selectedValues: Set<String>
+    @State private var previousScreenId: String = ""
     
     private let analytics = Analytics.shared
     
@@ -42,7 +49,8 @@ struct ChoiceBlockView: View {
         self.onAnswer = onAnswer
         self.onAction = onAction
         self.screenId = screenId
-        _selectedValues = State(initialValue: initialValues)
+        _selectedValues = State(initialValue: [])
+        _previousScreenId = State(initialValue: screenId)
     }
     
     var body: some View {
@@ -241,5 +249,15 @@ struct ChoiceBlockView: View {
             }
         }
         .padding(.horizontal, Spacing.md.value)
+        .onAppear {
+            // Reset selections when view appears (ensures fresh state on each screen)
+            selectedValues = []
+            previousScreenId = screenId
+        }
+        .onChange(of: screenId) { newScreenId in
+            // Reset selections when screen ID changes
+            selectedValues = []
+            previousScreenId = newScreenId
+        }
     }
 }
