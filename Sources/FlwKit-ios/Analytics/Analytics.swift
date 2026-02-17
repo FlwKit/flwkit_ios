@@ -268,7 +268,7 @@ class Analytics {
         queueLock.lock()
         guard !eventQueue.isEmpty else {
             isProcessing = false
-            queueLock.unlock()
+        queueLock.unlock()
             return
         }
         

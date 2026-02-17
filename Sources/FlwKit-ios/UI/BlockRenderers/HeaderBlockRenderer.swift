@@ -105,7 +105,7 @@ struct HeaderBlockRenderer: BlockRenderer {
             VStack(alignment: alignment, spacing: Spacing.sm.value) {
                 if let title = block.title {
                     if #available(iOS 16.0, *) {
-                        Text(title)
+                    Text(title)
                             .font(titleFont)
                             .foregroundColor(textColor)
                             .kerning(letterSpacing ?? 0)
@@ -138,7 +138,7 @@ struct HeaderBlockRenderer: BlockRenderer {
                 }
                 if let subtitle = block.subtitle {
                     if #available(iOS 16.0, *) {
-                        Text(subtitle)
+                    Text(subtitle)
                             .font(.system(size: CGFloat(subtitleFontSize)))
                             .foregroundColor(subtitleColor)
                             .multilineTextAlignment(subtitleAlignment)
