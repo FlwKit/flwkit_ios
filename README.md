@@ -35,14 +35,14 @@ A SwiftUI-first package that renders remote onboarding and funnel flows natively
    ```
    https://github.com/FlwKit/flwkit_ios.git
    ```
-3. Select version `1.0.0` or later
+3. Select version `0.1.0` or later
 4. Add to your target
 
 ### Package.swift
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/FlwKit/flwkit_ios.git", from: "1.0.0")
+    .package(url: "https://github.com/FlwKit/flwkit_ios.git", from: "0.1.0")
 ]
 ```
 
