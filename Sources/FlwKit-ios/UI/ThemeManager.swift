@@ -177,6 +177,25 @@ extension Color {
         // Otherwise, use hex directly
         return Color(hex: colorString)
     }
+
+    /// Resolve description color with proper handling of hex/rgba and opacity
+    static func resolveDescriptionColor(
+        color: String?,
+        opacity: Double?,
+        themeTextSecondary: String
+    ) -> Color {
+        guard let colorString = color else {
+            return Color(hex: themeTextSecondary)
+        }
+
+        if colorString.lowercased().hasPrefix("rgba") {
+            return Color.fromRgba(colorString) ?? Color(hex: themeTextSecondary)
+        }
+
+        let finalOpacity = opacity.map { $0 / 100.0 } ?? 1.0
+        let resolvedColor = Color(hex: colorString)
+        return finalOpacity < 1.0 ? resolvedColor.opacity(finalOpacity) : resolvedColor
+    }
 }
 
 // MARK: - Text with Letter Spacing (iOS 15 Compatible)

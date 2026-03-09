@@ -26,6 +26,7 @@ class BlockRendererRegistry {
     
     private func registerDefaultRenderers() {
         register("header", renderer: HeaderBlockRenderer())
+        register("description", renderer: DescriptionBlockRenderer())
         register("media", renderer: MediaBlockRenderer())
         register("choice", renderer: ChoiceBlockRenderer())
         register("text_input", renderer: TextInputBlockRenderer())
