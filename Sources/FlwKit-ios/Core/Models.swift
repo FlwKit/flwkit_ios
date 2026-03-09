@@ -581,6 +581,12 @@ public struct PersonalizationItem: Codable {
         }
         durationMs = ms
     }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(text, forKey: .text)
+        try container.encode(durationMs, forKey: .durationMs)
+    }
 }
 
 public struct CTAAction: Codable {
