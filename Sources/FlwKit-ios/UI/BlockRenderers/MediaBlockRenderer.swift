@@ -161,7 +161,8 @@ extension View {
         if let ratio = ratio {
             self.aspectRatio(ratio, contentMode: .fit)
         } else {
-            self
+            // No explicit aspect: preserve image's natural aspect ratio so the full image is visible (no cropping)
+            self.aspectRatio(contentMode: .fit)
         }
     }
     
