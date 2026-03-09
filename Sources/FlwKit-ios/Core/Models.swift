@@ -188,6 +188,8 @@ public struct Block: Codable {
     
     // Benefits list
     public let items: [BenefitsListItem]?
+    // Personalization block: timed sequence (items key holds [PersonalizationItem] when type == "personalization")
+    public let personalizationItems: [PersonalizationItem]?
     // Note: Typography properties (color, opacity, fontWeight, fontStyle, fontSize, align, spacing) are shared with header blocks (declared above)
     // Icon properties for benefits list
     public let icon: String? // Lucide icon name (e.g., "Check", "Star", "Heart")
@@ -301,8 +303,14 @@ public struct Block: Codable {
         secondary = try container.decodeIfPresent(CTAAction.self, forKey: .secondary)
         sticky = try container.decodeIfPresent(Bool.self, forKey: .sticky)
         size = try container.decodeIfPresent(String.self, forKey: .size)
-        items = try container.decodeIfPresent([BenefitsListItem].self, forKey: .items)
-        
+        if type == "personalization" {
+            personalizationItems = try container.decodeIfPresent([PersonalizationItem].self, forKey: .items)
+            items = nil
+        } else {
+            personalizationItems = nil
+            items = try container.decodeIfPresent([BenefitsListItem].self, forKey: .items)
+        }
+
         // Decode icon properties with maximum flexibility - handle all possible formats and types
         // Use try? to gracefully handle any decoding errors
         icon = try? container.decodeIfPresent(String.self, forKey: .icon)
@@ -425,7 +433,11 @@ public struct Block: Codable {
         try container.encodeIfPresent(secondary, forKey: .secondary)
         try container.encodeIfPresent(sticky, forKey: .sticky)
         try container.encodeIfPresent(size, forKey: .size)
-        try container.encodeIfPresent(items, forKey: .items)
+        if type == "personalization" {
+            try container.encodeIfPresent(personalizationItems, forKey: .items)
+        } else {
+            try container.encodeIfPresent(items, forKey: .items)
+        }
         try container.encodeIfPresent(icon, forKey: .icon)
         try container.encodeIfPresent(iconColor, forKey: .iconColor)
         try container.encodeIfPresent(iconSize, forKey: .iconSize)
@@ -535,6 +547,39 @@ public struct BenefitsListItem: Codable {
     
     public init(text: String) {
         self.text = text
+    }
+}
+
+// Personalization block: timed sequence of texts; backend validates durationMs 500–60_000
+public struct PersonalizationItem: Codable {
+    public let text: String
+    public let durationMs: Double
+
+    enum CodingKeys: String, CodingKey {
+        case text
+        case durationMs
+        case durationMsSnake = "duration_ms"
+    }
+
+    public init(text: String, durationMs: Double) {
+        self.text = text
+        self.durationMs = durationMs
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        text = try container.decode(String.self, forKey: .text)
+        let ms: Double
+        if let intVal = try? container.decode(Int.self, forKey: .durationMs) {
+            ms = Double(intVal)
+        } else if let doubleVal = try? container.decode(Double.self, forKey: .durationMs) {
+            ms = doubleVal
+        } else if let intVal = try? container.decode(Int.self, forKey: .durationMsSnake) {
+            ms = Double(intVal)
+        } else {
+            ms = try container.decode(Double.self, forKey: .durationMsSnake)
+        }
+        durationMs = ms
     }
 }
 
