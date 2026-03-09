@@ -38,7 +38,7 @@ struct PersonalizationBlockRenderer: BlockRenderer {
     }
 }
 
-// MARK: - Personalization Block View
+// MARK: - Personalization Block View (custom design: spinner + dynamic text + step indicator)
 
 private struct PersonalizationBlockView: View {
     let items: [PersonalizationItem]
@@ -55,20 +55,40 @@ private struct PersonalizationBlockView: View {
         return items[currentIndex]
     }
 
+    private let verticalSpacing: CGFloat = 24
+
+    private var textColor: Color {
+        theme.tokens.textPrimaryColor
+    }
+
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: verticalSpacing) {
+            // Circular spinner – uses theme primary text color (e.g. white on dark gradient)
             ProgressView()
                 .scaleEffect(1.2)
+                .tint(textColor)
 
-            if let item = currentItem, !item.text.isEmpty {
-                Text(item.text)
-                    .font(.body)
-                    .foregroundColor(theme.tokens.textSecondaryColor)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
+            if let item = currentItem {
+                VStack(spacing: 12) {
+                    if !item.text.isEmpty {
+                        Text(item.text)
+                            .font(.system(size: 17, weight: .regular))
+                            .foregroundColor(textColor)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
+
+                    // Step X of Y
+                    if items.count > 1 {
+                        Text("Step \(currentIndex + 1) of \(items.count)")
+                            .font(.system(size: 13, weight: .regular))
+                            .foregroundColor(textColor.opacity(0.8))
+                    }
+                }
             }
         }
         .frame(maxWidth: .infinity)
+        .padding(.vertical, Spacing.lg.value)
         .onAppear {
             isActive = true
             if !hasFiredStart {
