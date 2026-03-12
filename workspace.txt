@@ -1,0 +1,41 @@
+# FlwKit-ios workspace
+
+Workspace path: /Users/rudolfsrijkuris/Dokumenti/ByteMind/FlwKit/FlwKit-ios
+
+## Project structure
+
+Package.swift
+README.md
+.gitignore
+
+Sources/FlwKit-ios/
+  FlwKit.swift
+  FlwKit_ios.swift
+  Analytics/Analytics.swift
+  Core/Models.swift
+  Core/StateManager.swift
+  Networking/APIClient.swift
+  UI/
+    BackgroundResolver.swift
+    FlowView.swift
+    IconMapper.swift
+    ScreenView.swift
+    ThemeManager.swift
+    BlockRenderers/
+      BlockRenderer.swift
+      BenefitsListBlockRenderer.swift
+      ChoiceBlockRenderer.swift
+      CTABlockRenderer.swift
+      DescriptionBlockRenderer.swift
+      FooterBlockRenderer.swift
+      HeaderBlockRenderer.swift
+      MediaBlockRenderer.swift
+      PersonalizationBlockRenderer.swift
+      ProgressBarBlockRenderer.swift
+      SliderBlockRenderer.swift
+      SpacerBlockRenderer.swift
+      TestimonialBlockRenderer.swift
+      TextInputBlockRenderer.swift
+
+docs/
+  cta-complete-action.md

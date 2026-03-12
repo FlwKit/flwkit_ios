@@ -15,7 +15,7 @@ enum AnalyticsV2EventType: String {
 }
 
 /// Single event for POST /sdk/v2/apps/:appId/analytics/events
-struct AnalyticsV2EventPayload: Encodable {
+struct AnalyticsV2EventPayload: Codable {
     let event_type: String
     let metadata: AnalyticsV2Metadata
     let event_data: [String: AnyCodable]
@@ -27,7 +27,7 @@ struct AnalyticsV2EventPayload: Encodable {
     }
 }
 
-struct AnalyticsV2Metadata: Encodable {
+struct AnalyticsV2Metadata: Codable {
     let flow_id: String
     let timestamp: String
     var screen_id: String?
@@ -40,6 +40,31 @@ struct AnalyticsV2Metadata: Encodable {
     
     enum CodingKeys: String, CodingKey {
         case flow_id, timestamp, screen_id, user_id, anonymous_id, variant_id, app_version, country, device
+    }
+    
+    init(flow_id: String, timestamp: String, screen_id: String? = nil, user_id: String? = nil, anonymous_id: String? = nil, variant_id: String? = nil, app_version: String? = nil, country: String? = nil, device: String? = nil) {
+        self.flow_id = flow_id
+        self.timestamp = timestamp
+        self.screen_id = screen_id
+        self.user_id = user_id
+        self.anonymous_id = anonymous_id
+        self.variant_id = variant_id
+        self.app_version = app_version
+        self.country = country
+        self.device = device
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        flow_id = try container.decode(String.self, forKey: .flow_id)
+        timestamp = try container.decode(String.self, forKey: .timestamp)
+        screen_id = try container.decodeIfPresent(String.self, forKey: .screen_id)
+        user_id = try container.decodeIfPresent(String.self, forKey: .user_id)
+        anonymous_id = try container.decodeIfPresent(String.self, forKey: .anonymous_id)
+        variant_id = try container.decodeIfPresent(String.self, forKey: .variant_id)
+        app_version = try container.decodeIfPresent(String.self, forKey: .app_version)
+        country = try container.decodeIfPresent(String.self, forKey: .country)
+        device = try container.decodeIfPresent(String.self, forKey: .device)
     }
     
     func encode(to encoder: Encoder) throws {
@@ -231,7 +256,7 @@ class Analytics {
         formatter.timeZone = TimeZone(identifier: "UTC")
         let timestamp = formatter.string(from: Date())
         let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
-        let country = Locale.current.region?.identifier
+        let country = (Locale.current as NSLocale).object(forKey: .countryCode) as? String
         return AnalyticsV2Metadata(
             flow_id: flowId,
             timestamp: timestamp,
