@@ -1,10 +1,85 @@
 import Foundation
 
+// MARK: - Analytics v2 (fixed schema for dashboard)
+
+/// Valid Analytics v2 event types (do not add or rename without backend coordination)
+enum AnalyticsV2EventType: String {
+    case flow_started
+    case screen_viewed
+    case choice_selected
+    case input_submitted
+    case flow_completed
+    case flow_abandoned
+    case paywall_shown
+    case paywall_converted
+}
+
+/// Single event for POST /sdk/v2/apps/:appId/analytics/events
+struct AnalyticsV2EventPayload: Encodable {
+    let event_type: String
+    let metadata: AnalyticsV2Metadata
+    let event_data: [String: AnyCodable]
+    
+    enum CodingKeys: String, CodingKey {
+        case event_type
+        case metadata
+        case event_data
+    }
+}
+
+struct AnalyticsV2Metadata: Encodable {
+    let flow_id: String
+    let timestamp: String
+    var screen_id: String?
+    var user_id: String?
+    var anonymous_id: String?
+    var variant_id: String?
+    var app_version: String?
+    var country: String?
+    var device: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case flow_id, timestamp, screen_id, user_id, anonymous_id, variant_id, app_version, country, device
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(flow_id, forKey: .flow_id)
+        try container.encode(timestamp, forKey: .timestamp)
+        try container.encodeIfPresent(screen_id, forKey: .screen_id)
+        try container.encodeIfPresent(user_id, forKey: .user_id)
+        try container.encodeIfPresent(anonymous_id, forKey: .anonymous_id)
+        try container.encodeIfPresent(variant_id, forKey: .variant_id)
+        try container.encodeIfPresent(app_version, forKey: .app_version)
+        try container.encodeIfPresent(country, forKey: .country)
+        try container.encodeIfPresent(device, forKey: .device)
+    }
+}
+
+/// Ingest API request body
+struct AnalyticsV2IngestRequest: Encodable {
+    let events: [AnalyticsV2EventPayload]
+}
+
+/// Ingest API success response
+struct AnalyticsV2IngestResponse: Decodable {
+    let accepted: Int
+    let rejected: Int
+    let invalidIndices: [Int]
+}
+
+/// Ingest API error response (400)
+struct AnalyticsV2ErrorResponse: Decodable {
+    let error: String?
+    let invalidIndices: [Int]
+}
+
 class Analytics {
     static let shared = Analytics()
     
     private var baseURL: String = "https://api.flwkit.com"
     private var apiKey: String?
+    private var appId: String?
     private var userId: String?
     private var flowId: String?
     private var flowVersionId: String?
@@ -16,11 +91,21 @@ class Analytics {
     private let queueLock = NSLock()
     private var isProcessing = false
     
+    private var v2EventQueue: [AnalyticsV2EventPayload] = []
+    private let v2QueueLock = NSLock()
+    private var v2IsProcessing = false
+    private var v2RetryCount = 0
+    private let v2BatchSize = 20
+    private let v2MaxRetries = 5
+    
     private let session: URLSession
     private let userDefaults = UserDefaults.standard
     private let queueKey = "flwkit_analytics_queue"
+    private let v2QueueKey = "flwkit_analytics_v2_queue"
     private let sessionIdKey = "flwkit_session_id"
     private let userIdKey = "flwkit_user_id"
+    private let anonymousIdKey = "flwkit_anonymous_id"
+    private let appIdKey = "flwkit_app_id"
     
     private init() {
         let config = URLSessionConfiguration.default
@@ -28,6 +113,7 @@ class Analytics {
         self.session = URLSession(configuration: config)
         self.sessionId = getOrCreateSessionId()
         self.userId = loadUserId()
+        self.appId = userDefaults.string(forKey: appIdKey)
         loadQueue()
     }
     
@@ -39,6 +125,17 @@ class Analytics {
         if let userId = userId {
             setUserId(userId)
         }
+        if appId == nil {
+            self.appId = userDefaults.string(forKey: appIdKey)
+        }
+        loadV2Queue()
+    }
+    
+    /// Set app ID (called automatically when a flow is fetched and response includes appId)
+    func setAppIdIfNeeded(_ appId: String?) {
+        guard let appId = appId, !appId.isEmpty else { return }
+        self.appId = appId
+        userDefaults.set(appId, forKey: appIdKey)
     }
     
     /// Current user ID (for internal access)
@@ -116,6 +213,70 @@ class Analytics {
         return newSessionId
     }
     
+    /// Get or create anonymous ID for v2 attribution (persisted)
+    private func getOrCreateAnonymousId() -> String {
+        if let stored = userDefaults.string(forKey: anonymousIdKey), !stored.isEmpty {
+            return stored
+        }
+        let newId = "anon_\(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(16))"
+        userDefaults.set(newId, forKey: anonymousIdKey)
+        return newId
+    }
+    
+    /// Build v2 metadata (flow_id and timestamp required; rest optional)
+    private func buildV2Metadata(screenId: String? = nil) -> AnalyticsV2Metadata? {
+        guard let flowId = flowId, !flowId.isEmpty else { return nil }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        let timestamp = formatter.string(from: Date())
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+        let country = Locale.current.region?.identifier
+        return AnalyticsV2Metadata(
+            flow_id: flowId,
+            timestamp: timestamp,
+            screen_id: screenId,
+            user_id: userId,
+            anonymous_id: userId == nil ? getOrCreateAnonymousId() : nil,
+            variant_id: variantId,
+            app_version: appVersion,
+            country: country,
+            device: "iOS"
+        )
+    }
+    
+    /// Enqueue and send a v2 event (only when appId and apiKey are set)
+    func trackV2(eventType: AnalyticsV2EventType, screenId: String? = nil, eventData: [String: Any] = [:]) {
+        guard let appId = appId, !appId.isEmpty, apiKey != nil else { return }
+        guard let metadata = buildV2Metadata(screenId: screenId) else { return }
+        let payload = AnalyticsV2EventPayload(
+            event_type: eventType.rawValue,
+            metadata: metadata,
+            event_data: eventData.mapValues { AnyCodable($0) }
+        )
+        v2QueueLock.lock()
+        v2EventQueue.append(payload)
+        v2QueueLock.unlock()
+        saveV2Queue()
+        processV2Queue()
+    }
+    
+    /// Track paywall shown (v2 only; call when your paywall is displayed)
+    func trackPaywallShown(flowId: String, screenId: String? = nil) {
+        let previousFlowId = self.flowId
+        self.flowId = flowId
+        trackV2(eventType: .paywall_shown, screenId: screenId, eventData: [:])
+        if let previous = previousFlowId { self.flowId = previous }
+    }
+    
+    /// Track paywall converted (v2 only; call when user converts at paywall)
+    func trackPaywallConverted(flowId: String, screenId: String? = nil) {
+        let previousFlowId = self.flowId
+        self.flowId = flowId
+        trackV2(eventType: .paywall_converted, screenId: screenId, eventData: [:])
+        if let previous = previousFlowId { self.flowId = previous }
+    }
+    
     /// Track a generic event
     func trackEvent(eventType: String, eventData: [String: Any]) {
         guard apiKey != nil else {
@@ -148,6 +309,7 @@ class Analytics {
             "flowKey": flowKey,
             "entryScreenId": entryScreenId
         ])
+        trackV2(eventType: .flow_started, screenId: nil, eventData: [:])
     }
     
     /// Track flow complete event
@@ -159,6 +321,7 @@ class Analytics {
             "totalScreens": totalScreens,
             "timeSpent": timeSpent
         ])
+        trackV2(eventType: .flow_completed, screenId: nil, eventData: [:])
     }
     
     /// Track flow abandoned event
@@ -169,6 +332,7 @@ class Analytics {
             "screensCompleted": screensCompleted,
             "timeSpent": timeSpent
         ])
+        trackV2(eventType: .flow_abandoned, screenId: nil, eventData: [:])
     }
     
     /// Track screen view event
@@ -179,6 +343,7 @@ class Analytics {
             "screenIndex": screenIndex,
             "totalScreens": totalScreens
         ])
+        trackV2(eventType: .screen_viewed, screenId: screenId, eventData: [:])
     }
     
     /// Track screen enter event
@@ -225,6 +390,12 @@ class Analytics {
             "screenId": screenId,
             "isMultiSelect": isMultiSelect
         ])
+        trackV2(eventType: .choice_selected, screenId: screenId, eventData: [
+            "choice_block_id": choiceBlockId,
+            "option_value": optionValue,
+            "option_label": optionLabel,
+            "is_multi_select": isMultiSelect
+        ])
     }
     
     /// Track text input submitted event
@@ -235,6 +406,12 @@ class Analytics {
             "screenId": screenId,
             "hasValue": hasValue,
             "valueLength": valueLength
+        ])
+        trackV2(eventType: .input_submitted, screenId: screenId, eventData: [
+            "input_block_id": inputBlockId,
+            "input_key": inputKey,
+            "has_value": hasValue,
+            "value_length": valueLength
         ])
     }
     
@@ -385,6 +562,139 @@ class Analytics {
             eventQueue = try decoder.decode([AnalyticsEventPayload].self, from: data)
         } catch {
             eventQueue = []
+        }
+    }
+    
+    // MARK: - Analytics v2 queue and ingest
+    
+    private func saveV2Queue() {
+        v2QueueLock.lock()
+        defer { v2QueueLock.unlock() }
+        do {
+            let encoder = JSONEncoder()
+            let data = try encoder.encode(v2EventQueue)
+            userDefaults.set(data, forKey: v2QueueKey)
+        } catch {}
+    }
+    
+    private func loadV2Queue() {
+        guard let data = userDefaults.data(forKey: v2QueueKey) else { return }
+        do {
+            let decoder = JSONDecoder()
+            v2EventQueue = try decoder.decode([AnalyticsV2EventPayload].self, from: data)
+        } catch {
+            v2EventQueue = []
+        }
+    }
+    
+    private func processV2Queue() {
+        v2QueueLock.lock()
+        guard !v2IsProcessing, !v2EventQueue.isEmpty, appId != nil, apiKey != nil else {
+            v2QueueLock.unlock()
+            return
+        }
+        let batchSize = min(v2BatchSize, v2EventQueue.count)
+        let batch = Array(v2EventQueue.prefix(batchSize))
+        v2EventQueue.removeFirst(batchSize)
+        v2IsProcessing = true
+        v2QueueLock.unlock()
+        saveV2Queue()
+        sendV2Batch(batch)
+    }
+    
+    private func sendV2Batch(_ batch: [AnalyticsV2EventPayload]) {
+        guard let appId = appId, let apiKey = apiKey,
+              let url = URL(string: "\(baseURL)/sdk/v2/apps/\(appId)/analytics/events") else {
+            v2QueueLock.lock()
+            v2EventQueue.insert(contentsOf: batch, at: 0)
+            v2IsProcessing = false
+            v2QueueLock.unlock()
+            saveV2Queue()
+            return
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body = AnalyticsV2IngestRequest(events: batch)
+        do {
+            request.httpBody = try JSONEncoder().encode(body)
+        } catch {
+            v2QueueLock.lock()
+            v2EventQueue.insert(contentsOf: batch, at: 0)
+            v2IsProcessing = false
+            v2QueueLock.unlock()
+            saveV2Queue()
+            return
+        }
+        session.dataTask(with: request) { [weak self] data, response, error in
+            guard let self = self else { return }
+            let httpResponse = response as? HTTPURLResponse
+            let statusCode = httpResponse?.statusCode ?? -1
+            if let error = error {
+                self.v2Retry(batch: batch, retry: true)
+                return
+            }
+            switch statusCode {
+            case 200:
+                if let data = data,
+                   let decoded = try? JSONDecoder().decode(AnalyticsV2IngestResponse.self, from: data),
+                   !decoded.invalidIndices.isEmpty {
+                    let validIndices = Set(0..<batch.count).subtracting(decoded.invalidIndices)
+                    let toRequeue = decoded.invalidIndices.sorted().map { batch[$0] }
+                    self.v2QueueLock.lock()
+                    self.v2EventQueue.insert(contentsOf: toRequeue, at: 0)
+                    self.v2QueueLock.unlock()
+                    self.saveV2Queue()
+                }
+                self.v2RetryCount = 0
+                self.v2QueueLock.lock()
+                self.v2IsProcessing = false
+                self.v2QueueLock.unlock()
+                DispatchQueue.main.async { self.processV2Queue() }
+            case 400:
+                if let data = data, let err = try? JSONDecoder().decode(AnalyticsV2ErrorResponse.self, from: data), !err.invalidIndices.isEmpty {
+                    let toRequeue = err.invalidIndices.sorted().map { batch[$0] }
+                    self.v2QueueLock.lock()
+                    self.v2EventQueue.insert(contentsOf: toRequeue, at: 0)
+                    self.v2QueueLock.unlock()
+                    self.saveV2Queue()
+                }
+                self.v2RetryCount = 0
+                self.v2QueueLock.lock()
+                self.v2IsProcessing = false
+                self.v2QueueLock.unlock()
+                DispatchQueue.main.async { self.processV2Queue() }
+            case 401, 403:
+                self.v2QueueLock.lock()
+                self.v2EventQueue.insert(contentsOf: batch, at: 0)
+                self.v2IsProcessing = false
+                self.v2QueueLock.unlock()
+                self.saveV2Queue()
+            case 429:
+                self.v2Retry(batch: batch, retry: true)
+            case 500...599:
+                self.v2Retry(batch: batch, retry: true)
+            default:
+                self.v2Retry(batch: batch, retry: true)
+            }
+        }.resume()
+    }
+    
+    private func v2Retry(batch: [AnalyticsV2EventPayload], retry: Bool) {
+        v2QueueLock.lock()
+        v2EventQueue.insert(contentsOf: batch, at: 0)
+        v2IsProcessing = false
+        v2QueueLock.unlock()
+        saveV2Queue()
+        guard retry, v2RetryCount < v2MaxRetries else {
+            DispatchQueue.main.async { [weak self] in self?.processV2Queue() }
+            return
+        }
+        v2RetryCount += 1
+        let delay = min(2.0 * pow(2.0, Double(v2RetryCount)), 60.0)
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+            self?.processV2Queue()
         }
     }
 }

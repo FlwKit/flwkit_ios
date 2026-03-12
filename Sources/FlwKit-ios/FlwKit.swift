@@ -33,7 +33,7 @@ public struct FlwKit {
     
     /// Configure FlwKit with your API key.
     /// Call this once during app initialization (in AppDelegate or @main App struct).
-    /// The app ID is automatically extracted from the API key by the backend.
+    /// Analytics v2 is enabled automatically when the backend includes appId in the flow response (no extra config needed).
     /// - Parameters:
     ///   - apiKey: Your FlwKit API key
     ///   - userId: Optional user ID for user-specific flows

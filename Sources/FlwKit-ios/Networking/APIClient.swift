@@ -79,6 +79,7 @@ class APIClient {
                         } else {
                             analytics.setFlowContext(flowId: variantFlow.id, flowVersionId: nil)
                         }
+                        analytics.setAppIdIfNeeded(variantFlow.appId)
                         // Store experiment context separately (experimentId and variantId)
                         analytics.setABTestContext(testId: abTest.experimentId, variantId: abTest.variant?.id)
                         
@@ -89,6 +90,7 @@ class APIClient {
                     // No A/B test or no flowData, use the active flow we already fetched
                     // Set flow context without version (default published version)
                     analytics.setFlowContext(flowId: activeFlow.id, flowVersionId: nil)
+                    analytics.setAppIdIfNeeded(activeFlow.appId)
                     // Clear A/B test context if no active test
                     analytics.setABTestContext(testId: nil, variantId: nil)
                     completion(.success(activeFlow))
@@ -114,6 +116,7 @@ class APIClient {
                     // Try to use cached flow as fallback
                     if let cachedFlow = self.cache.getFlow(flowKey: "active-flow") {
                         analytics.setFlowContext(flowId: cachedFlow.id, flowVersionId: nil)
+                        analytics.setAppIdIfNeeded(cachedFlow.appId)
                         analytics.setABTestContext(testId: nil, variantId: nil)
                         completion(.success(cachedFlow))
                     } else {
@@ -125,6 +128,7 @@ class APIClient {
                 // For other errors, try cache as fallback
                 if let cachedFlow = self.cache.getFlow(flowKey: "active-flow") {
                     analytics.setFlowContext(flowId: cachedFlow.id, flowVersionId: nil)
+                    analytics.setAppIdIfNeeded(cachedFlow.appId)
                     analytics.setABTestContext(testId: nil, variantId: nil)
                     completion(.success(cachedFlow))
                 } else {

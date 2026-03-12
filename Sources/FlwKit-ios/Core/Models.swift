@@ -11,6 +11,8 @@ public struct FlowPayloadV1: Codable {
     public let defaultThemeId: String?
     public let themes: [Theme]
     public let screens: [Screen]
+    /// App ID (included by backend for Analytics v2; SDK uses it automatically)
+    public let appId: String?
     
     enum CodingKeys: String, CodingKey {
         case schemaVersion
@@ -20,6 +22,7 @@ public struct FlowPayloadV1: Codable {
         case defaultThemeId
         case themes
         case screens
+        case appId
     }
 }
 
@@ -33,6 +36,8 @@ public struct Flow: Codable {
     public let defaultThemeId: String?
     public let themes: [Theme]
     public let schemaVersion: Int
+    /// App ID from backend (used automatically for Analytics v2)
+    public let appId: String?
     
     // Computed property for compatibility
     public var flowKey: String {
@@ -49,10 +54,11 @@ public struct Flow: Codable {
         self.defaultThemeId = payload.defaultThemeId
         self.themes = payload.themes
         self.schemaVersion = payload.schemaVersion
+        self.appId = payload.appId
     }
     
     // Legacy init for backwards compatibility
-    public init(id: String, key: String, version: Int, screens: [Screen], defaultThemeId: String? = nil, schemaVersion: Int = 1, entryScreenId: String? = nil, themes: [Theme] = []) {
+    public init(id: String, key: String, version: Int, screens: [Screen], defaultThemeId: String? = nil, schemaVersion: Int = 1, entryScreenId: String? = nil, themes: [Theme] = [], appId: String? = nil) {
         self.id = id
         self.key = key
         self.version = version
@@ -61,6 +67,7 @@ public struct Flow: Codable {
         self.defaultThemeId = defaultThemeId
         self.themes = themes
         self.schemaVersion = schemaVersion
+        self.appId = appId
     }
 }
 

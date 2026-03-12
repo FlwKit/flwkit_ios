@@ -5,13 +5,24 @@ struct TextInputBlockRenderer: BlockRenderer {
     func render(block: Block, theme: Theme, state: FlowState, onAnswer: @escaping (String, Any) -> Void, onAction: @escaping (String, String?) -> Void) -> AnyView {
         let blockKey = block.key ?? ""
         let initialText = (state.answers[blockKey]?.value as? String) ?? ""
+        let screenId = state.currentScreenId ?? ""
+        let analytics = Analytics.shared
         
         return AnyView(
             TextInputBlockView(
                 block: block,
                 theme: theme,
                 initialText: initialText,
-                onAnswer: onAnswer
+                onAnswer: onAnswer,
+                onSubmit: { value in
+                    analytics.trackTextInputSubmitted(
+                        inputBlockId: blockKey,
+                        inputKey: blockKey,
+                        screenId: screenId,
+                        hasValue: !value.isEmpty,
+                        valueLength: value.count
+                    )
+                }
             )
         )
     }
@@ -22,15 +33,17 @@ struct TextInputBlockView: View {
     let theme: Theme
     let initialText: String
     let onAnswer: (String, Any) -> Void
+    let onSubmit: ((String) -> Void)?
     
     @State private var text: String
     @FocusState private var isFocused: Bool
     
-    init(block: Block, theme: Theme, initialText: String, onAnswer: @escaping (String, Any) -> Void) {
+    init(block: Block, theme: Theme, initialText: String, onAnswer: @escaping (String, Any) -> Void, onSubmit: ((String) -> Void)? = nil) {
         self.block = block
         self.theme = theme
         self.initialText = initialText
         self.onAnswer = onAnswer
+        self.onSubmit = onSubmit
         _text = State(initialValue: initialText)
     }
     
@@ -190,7 +203,8 @@ struct TextInputBlockView: View {
                 borderRadius: CGFloat(borderRadius),
                 onTextChange: { newValue in
                     onAnswer(blockKey, newValue)
-                }
+                },
+                onSubmit: onSubmit
             )
             .frame(width: width, height: height)
         }
@@ -215,6 +229,7 @@ struct CustomTextField: UIViewRepresentable {
     let borderWidth: CGFloat
     let borderRadius: CGFloat
     let onTextChange: (String) -> Void
+    let onSubmit: ((String) -> Void)?
     
     func makeUIView(context: Context) -> UITextField {
         let textField = UITextField()
@@ -353,6 +368,7 @@ struct CustomTextField: UIViewRepresentable {
         }
         
         func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+            parent.onSubmit?(textField.text ?? "")
             textField.resignFirstResponder()
             return true
         }
