@@ -9,6 +9,8 @@ struct FlowView: View {
     @State private var flowStartTime: Date?
     @State private var screenEnterTime: Date?
     @State private var hasTrackedFlowStart: Bool = false
+    @State private var lastTrackedScreenId: String?
+    @State private var hasCompletedFlow: Bool = false
     
     let attributes: [String: Any]
     let onComplete: ((FlwKitCompletionResult) -> Void)?
@@ -41,9 +43,11 @@ struct FlowView: View {
            let index = flow.screens.firstIndex(where: { $0.id == currentScreenId }) {
             _currentScreenIndex = State(initialValue: index)
             initialState.currentScreenIndex = index
+            initialState.currentScreenId = currentScreenId
         } else if let entryIndex = flow.screens.firstIndex(where: { $0.id == flow.entryScreenId }) {
             _currentScreenIndex = State(initialValue: entryIndex)
             initialState.currentScreenIndex = entryIndex
+            initialState.currentScreenId = flow.screens[entryIndex].id
         }
         
         self.onComplete = onComplete
@@ -70,16 +74,9 @@ struct FlowView: View {
                     onAnswer: handleAnswer,
                     onAction: handleAction
                 )
+                .id(screen.id)
                 .onAppear {
-                    // Track flow_start before first screen_view (critical for proper sequencing)
-                    if !hasTrackedFlowStart {
-                        trackFlowStart()
-                        hasTrackedFlowStart = true
-                    }
-                    // Track screen view (entry screen view is tracked after flow_start)
-                    // Events are queued in order, so flow_start will be sent before screen_view
-                    trackScreenView(screen: screen)
-                    screenEnterTime = Date()
+                    handleScreenDisplayed(screen)
                 }
             } else {
                 // Flow complete
@@ -157,6 +154,9 @@ struct FlowView: View {
     }
     
     private func handleFlowComplete() {
+        guard !hasCompletedFlow else { return }
+        hasCompletedFlow = true
+        
         let rawAnswers = currentState.answers.mapValues { $0.value }
         // Map choice option IDs to labels and order by screen sequence
         let finalAnswers = mapAnswersToContentOrdered(rawAnswers)
@@ -298,6 +298,25 @@ struct FlowView: View {
             screenIndex: currentScreenIndex,         // RECOMMENDED: Position in flow
             totalScreens: flow.screens.count         // RECOMMENDED: Total screens
         )
+    }
+    
+    private func handleScreenDisplayed(_ screen: Screen) {
+        currentState.currentScreenId = screen.id
+        currentState.currentScreenIndex = currentScreenIndex
+        
+        // Track flow_start before the first screen_view.
+        if !hasTrackedFlowStart {
+            trackFlowStart()
+            hasTrackedFlowStart = true
+        }
+        
+        guard lastTrackedScreenId != screen.id else { return }
+        
+        // Force one screen_view per visible screen change.
+        trackScreenView(screen: screen)
+        lastTrackedScreenId = screen.id
+        screenEnterTime = Date()
+        saveState()
     }
     
     private func saveState() {
