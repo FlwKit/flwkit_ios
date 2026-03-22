@@ -9,11 +9,12 @@ class APIClient {
     private let session: URLSession
     private let cache: FlowCache
     private let variantCache: VariantCache
+    private var isFetching: Bool = false
     
     private init() {
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 30
-        config.timeoutIntervalForResource = 60
+        config.timeoutIntervalForRequest = 10
+        config.timeoutIntervalForResource = 20
         self.session = URLSession(configuration: config)
         self.cache = FlowCache.shared
         self.variantCache = VariantCache.shared
@@ -138,6 +139,20 @@ class APIClient {
         }
     }
     
+    /// Fire-and-forget background fetch that warms the cache silently.
+    /// All errors are swallowed — this is a prefetch warmup, not user-facing.
+    func fetchAndCacheFlow(userId: String?) async {
+        guard !isFetching else { return }
+        isFetching = true
+        defer { isFetching = false }
+
+        _ = try? await withCheckedThrowingContinuation { continuation in
+            fetchFlow(userId: userId) { result in
+                continuation.resume(with: result)
+            }
+        }
+    }
+
     /// Check for A/B test variant assignment
     func checkABTestVariant(flowKey: String, userId: String? = nil, sessionId: String? = nil, completion: @escaping (ABTestResponse?) -> Void) {
         guard let apiKey = apiKey else {

@@ -41,6 +41,13 @@ public struct FlwKit {
     public static func configure(apiKey: String, userId: String? = nil, baseURL: String? = nil) {
         apiClient.configure(baseURL: baseURL, apiKey: apiKey)
         analytics.configure(baseURL: baseURL, apiKey: apiKey, userId: userId)
+        prefetchFlow(userId: userId)
+    }
+
+    private static func prefetchFlow(userId: String?) {
+        Task {
+            await apiClient.fetchAndCacheFlow(userId: userId)
+        }
     }
     
     /// Present a flow programmatically (for UIKit or programmatic SwiftUI)
@@ -164,12 +171,25 @@ public struct FlwKitFlowView: View {
     }
     
     private func loadFlow() {
-        isLoading = true
         error = nil
-        
+
+        // If a previously cached flow exists, render it immediately and
+        // refresh in the background so the cache stays warm for next time.
+        if let cachedFlow = FlowCache.shared.getFlow(flowKey: "active-flow") {
+            flow = cachedFlow
+            isLoading = false
+            Task {
+                await apiClient.fetchAndCacheFlow(userId: analytics.currentUserId)
+            }
+            return
+        }
+
+        // No cache yet (first launch) — fetch normally with a loading indicator.
+        isLoading = true
+
         apiClient.fetchFlow(userId: analytics.currentUserId) { result in
             isLoading = false
-            
+
             switch result {
             case .success(let fetchedFlow):
                 self.flow = fetchedFlow
