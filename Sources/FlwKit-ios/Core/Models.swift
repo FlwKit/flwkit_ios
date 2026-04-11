@@ -214,6 +214,29 @@ public struct Block: Codable {
     // Progress bar
     public let fillColor: String? // Hex color for filled portion (e.g., "#3DDC97")
     public let fillOpacity: Double? // 0-100 (percentage) for filled portion
+
+    // Permission blocks
+    public let headline: String?
+    public let permissionDescription: String?
+    public let ctaLabel: String?
+    public let skipLabel: String?
+    public let onGranted: String?
+    public let onDenied: String?
+
+    // Processing animation block
+    public let subHeadline: String?
+    public let durationSeconds: Double?
+    public let autoAdvance: Bool?
+    public let processingItems: [String]?
+
+    // Comparison table block
+    public let leftLabel: String?
+    public let rightLabel: String?
+    public let rows: [ComparisonRow]?
+
+    // Swipe cards block
+    public let cards: [SwipeCard]?
+    public let onComplete: String?
     
     enum CodingKeys: String, CodingKey {
         case type, key, style, title, subtitle
@@ -250,6 +273,20 @@ public struct Block: Codable {
         case iconColorSnake = "icon_color" // Support both formats
         case iconSize = "iconSize"
         case iconSizeSnake = "icon_size" // Support both formats
+        case headline
+        case permissionDescription = "description"
+        case ctaLabel
+        case skipLabel
+        case onGranted
+        case onDenied
+        case subHeadline
+        case durationSeconds
+        case autoAdvance
+        case leftLabel
+        case rightLabel
+        case rows
+        case cards
+        case onComplete
     }
     
     // Custom decoding to handle "height" for both media and spacer blocks
@@ -312,8 +349,14 @@ public struct Block: Codable {
         size = try container.decodeIfPresent(String.self, forKey: .size)
         if type == "personalization" {
             personalizationItems = try container.decodeIfPresent([PersonalizationItem].self, forKey: .items)
+            processingItems = nil
+            items = nil
+        } else if type == "processing_animation" {
+            processingItems = try container.decodeIfPresent([String].self, forKey: .items)
+            personalizationItems = nil
             items = nil
         } else {
+            processingItems = nil
             personalizationItems = nil
             items = try container.decodeIfPresent([BenefitsListItem].self, forKey: .items)
         }
@@ -354,6 +397,20 @@ public struct Block: Codable {
         text = try container.decodeIfPresent(String.self, forKey: .text)
         fillColor = try container.decodeIfPresent(String.self, forKey: .fillColor)
         fillOpacity = try container.decodeIfPresent(Double.self, forKey: .fillOpacity)
+        headline = try container.decodeIfPresent(String.self, forKey: .headline)
+        permissionDescription = try container.decodeIfPresent(String.self, forKey: .permissionDescription)
+        ctaLabel = try container.decodeIfPresent(String.self, forKey: .ctaLabel)
+        skipLabel = try container.decodeIfPresent(String.self, forKey: .skipLabel)
+        onGranted = try container.decodeIfPresent(String.self, forKey: .onGranted)
+        onDenied = try container.decodeIfPresent(String.self, forKey: .onDenied)
+        subHeadline = try container.decodeIfPresent(String.self, forKey: .subHeadline)
+        durationSeconds = try container.decodeIfPresent(Double.self, forKey: .durationSeconds)
+        autoAdvance = try container.decodeIfPresent(Bool.self, forKey: .autoAdvance)
+        leftLabel = try container.decodeIfPresent(String.self, forKey: .leftLabel)
+        rightLabel = try container.decodeIfPresent(String.self, forKey: .rightLabel)
+        rows = try container.decodeIfPresent([ComparisonRow].self, forKey: .rows)
+        cards = try container.decodeIfPresent([SwipeCard].self, forKey: .cards)
+        onComplete = try container.decodeIfPresent(String.self, forKey: .onComplete)
         
         // Handle "height" - media, spacer, text_input, cta, and choice blocks use it as Double
         let heightValue = try container.decodeIfPresent(Double.self, forKey: .height)
@@ -442,6 +499,8 @@ public struct Block: Codable {
         try container.encodeIfPresent(size, forKey: .size)
         if type == "personalization" {
             try container.encodeIfPresent(personalizationItems, forKey: .items)
+        } else if type == "processing_animation" {
+            try container.encodeIfPresent(processingItems, forKey: .items)
         } else {
             try container.encodeIfPresent(items, forKey: .items)
         }
@@ -454,6 +513,20 @@ public struct Block: Codable {
         try container.encodeIfPresent(text, forKey: .text)
         try container.encodeIfPresent(fillColor, forKey: .fillColor)
         try container.encodeIfPresent(fillOpacity, forKey: .fillOpacity)
+        try container.encodeIfPresent(headline, forKey: .headline)
+        try container.encodeIfPresent(permissionDescription, forKey: .permissionDescription)
+        try container.encodeIfPresent(ctaLabel, forKey: .ctaLabel)
+        try container.encodeIfPresent(skipLabel, forKey: .skipLabel)
+        try container.encodeIfPresent(onGranted, forKey: .onGranted)
+        try container.encodeIfPresent(onDenied, forKey: .onDenied)
+        try container.encodeIfPresent(subHeadline, forKey: .subHeadline)
+        try container.encodeIfPresent(durationSeconds, forKey: .durationSeconds)
+        try container.encodeIfPresent(autoAdvance, forKey: .autoAdvance)
+        try container.encodeIfPresent(leftLabel, forKey: .leftLabel)
+        try container.encodeIfPresent(rightLabel, forKey: .rightLabel)
+        try container.encodeIfPresent(rows, forKey: .rows)
+        try container.encodeIfPresent(cards, forKey: .cards)
+        try container.encodeIfPresent(onComplete, forKey: .onComplete)
         
         // Encode height based on block type
         if type == "media" {
@@ -606,6 +679,19 @@ public struct CTAAction: Codable {
         self.action = action
         self.target = target
     }
+}
+
+public struct ComparisonRow: Codable {
+    public let feature: String
+    public let leftValue: String
+    public let rightValue: String
+    public let highlighted: Bool?
+}
+
+public struct SwipeCard: Codable {
+    public let id: String
+    public let text: String
+    public let emoji: String?
 }
 
 // MARK: - Theme Models

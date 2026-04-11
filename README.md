@@ -122,3 +122,25 @@ The completion callback receives a `FlwKitCompletionResult` containing:
 - `variantId`: A/B test variant ID (if user was in an A/B test, `nil` otherwise)
 - `completedAt`: Timestamp when the flow was completed
 - `answers`: Dictionary of all answers collected from each screen (keys are block keys, values are user answers mapped to their labels/content, not just IDs)
+
+## Permission blocks
+
+If your flow includes permission blocks, add the matching Info.plist keys in your app target:
+
+| Block type | Info.plist key |
+|------------|----------------|
+| `notification_permission` | No key needed |
+| `health_permission` | `NSHealthShareUsageDescription` |
+| `tracking_permission` | `NSUserTrackingUsageDescription` |
+| `camera_permission` | `NSCameraUsageDescription` |
+| `location_permission` | `NSLocationWhenInUseUsageDescription` |
+| `microphone_permission` | `NSMicrophoneUsageDescription` |
+| `photo_library_permission` | `NSPhotoLibraryUsageDescription` |
+
+Important behavior:
+- Permission blocks always advance the user to the next step (or complete flow if configured), even when permission is denied.
+- The SDK safely skips requests when required Info.plist keys are missing, to avoid runtime crashes.
+
+Entitlements:
+- `health_permission` requires enabling **HealthKit** capability.
+- `tracking_permission` requires **App Tracking Transparency** support and proper App Store policy setup.
