@@ -21,6 +21,7 @@ enum IconMapper {
             // Common icons
             "Star": "star.fill",
             "Heart": "heart.fill",
+            "heart": "heart.fill",
             "Zap": "bolt.fill",
             "Shield": "shield.fill",
             "Award": "award.fill",
@@ -30,9 +31,14 @@ enum IconMapper {
             
             // Communication
             "Bell": "bell.fill",
+            "bell": "bell.fill",
             "Mail": "envelope.fill",
             "MessageSquare": "message.fill",
             "Phone": "phone.fill",
+            "Mic": "mic.fill",
+            "Photo": "photo.fill",
+            "microphone": "mic.fill",
+            "photo": "photo.fill",
             
             // Navigation & UI
             "Bookmark": "bookmark.fill",
@@ -47,6 +53,7 @@ enum IconMapper {
             
             // Media
             "Camera": "camera.fill",
+            "camera": "camera.fill",
             "Video": "video.fill",
             "Music": "music.note",
             "Play": "play.fill",
@@ -68,6 +75,7 @@ enum IconMapper {
             "ShoppingCart": "cart.fill",
             "Tag": "tag.fill",
             "TrendingUp": "arrow.trending.up",
+            "chart": "arrow.trending.up",
             
             // Lifestyle
             "Coffee": "cup.and.saucer.fill",
@@ -77,6 +85,7 @@ enum IconMapper {
             
             // Location & Travel
             "Map": "map.fill",
+            "location": "location.fill",
             "Compass": "compass.fill",
             "Globe": "globe",
             
@@ -103,6 +112,7 @@ enum IconMapper {
             "Star", "Heart", "Zap", "Shield", "Award",
             "Sparkles", "ThumbsUp", "ArrowRight",
             "Bell", "Mail", "MessageSquare", "Phone",
+            "Mic", "Photo",
             "Bookmark", "Home", "Settings", "Search", "Filter",
             "Calendar", "Clock",
             "Camera", "Video", "Music", "Play",

@@ -38,6 +38,16 @@ class BlockRendererRegistry {
         register("testimonial", renderer: TestimonialBlockRenderer())
         register("footer", renderer: FooterBlockRenderer())
         register("progress_bar", renderer: ProgressBarBlockRenderer())
+        register("notification_permission", renderer: PermissionBlockRenderer())
+        register("health_permission", renderer: PermissionBlockRenderer())
+        register("tracking_permission", renderer: PermissionBlockRenderer())
+        register("camera_permission", renderer: PermissionBlockRenderer())
+        register("location_permission", renderer: PermissionBlockRenderer())
+        register("microphone_permission", renderer: PermissionBlockRenderer())
+        register("photo_library_permission", renderer: PermissionBlockRenderer())
+        register("processing_animation", renderer: ProcessingAnimationBlockRenderer())
+        register("comparison_table", renderer: ComparisonTableBlockRenderer())
+        register("swipe_cards", renderer: SwipeCardsBlockRenderer())
     }
 }
 
@@ -60,4 +70,3 @@ struct UnsupportedBlockView: View {
         .padding(.horizontal)
     }
 }
-
