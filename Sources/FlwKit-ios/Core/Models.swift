@@ -70,6 +70,18 @@ public struct FlowPayloadV1: Codable {
         
         self.appId = try container.decodeIfPresent(String.self, forKey: .appId)
     }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(schemaVersion, forKey: .schemaVersion)
+        try container.encode(flowKey, forKey: .flowKey)
+        try container.encode(version, forKey: .version)
+        try container.encode(entryScreenId, forKey: .entryScreenId)
+        try container.encodeIfPresent(defaultThemeId, forKey: .defaultThemeId)
+        try container.encode(themes, forKey: .themes)
+        try container.encode(screens, forKey: .screens)
+        try container.encodeIfPresent(appId, forKey: .appId)
+    }
 }
 
 public struct ExperimentContext: Codable {
