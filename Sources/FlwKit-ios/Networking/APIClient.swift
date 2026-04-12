@@ -282,7 +282,7 @@ class APIClient {
                 completion(.success(flow))
             } catch {
                 if let decodingError = error as? DecodingError {
-                    print("FlwKit decode error: \(describeDecodingError(decodingError))")
+                    print("FlwKit decode error: \(APIClient.describeDecodingError(decodingError))")
                 } else {
                     print("FlwKit decode error: \(error.localizedDescription)")
                 }
@@ -291,7 +291,7 @@ class APIClient {
         }.resume()
     }
 
-    private func describeDecodingError(_ error: DecodingError) -> String {
+    private static func describeDecodingError(_ error: DecodingError) -> String {
         switch error {
         case .keyNotFound(let key, let context):
             return "keyNotFound '\(key.stringValue)' at \(codingPathString(context.codingPath)): \(context.debugDescription)"
@@ -306,7 +306,7 @@ class APIClient {
         }
     }
     
-    private func codingPathString(_ path: [CodingKey]) -> String {
+    private static func codingPathString(_ path: [CodingKey]) -> String {
         if path.isEmpty {
             return "<root>"
         }
