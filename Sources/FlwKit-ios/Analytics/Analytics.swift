@@ -313,6 +313,7 @@ class Analytics {
             flowVersionId: flowVersionId,
             experimentId: abTestId, // Include experimentId at payload level
             variantId: variantId,  // Include variantId at payload level
+            deviceId: FlwKit.deviceID,
             eventType: eventType,
             eventData: eventData,
             userId: userId,
@@ -518,6 +519,7 @@ class Analytics {
         request.httpMethod = "POST"
         request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(FlwKit.assignmentID, forHTTPHeaderField: "X-FlwKit-Device-ID")
         
         do {
             let encoder = JSONEncoder()
@@ -641,6 +643,7 @@ class Analytics {
         request.httpMethod = "POST"
         request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(FlwKit.assignmentID, forHTTPHeaderField: "X-FlwKit-Device-ID")
         let body = AnalyticsV2IngestRequest(events: batch)
         do {
             request.httpBody = try JSONEncoder().encode(body)
@@ -739,6 +742,7 @@ struct AnalyticsEventPayload: Codable {
     let flowVersionId: String?
     let experimentId: String? // Experiment ID for A/B testing (required for variant comparison charts)
     let variantId: String?    // Variant ID for A/B testing (required for variant comparison charts)
+    let deviceId: String
     let eventType: String
     let eventData: [String: AnyCodable] // Event-specific data (e.g., screenId for screen_view events)
     let userId: String?
@@ -750,6 +754,7 @@ struct AnalyticsEventPayload: Codable {
         case flowVersionId
         case experimentId
         case variantId
+        case deviceId
         case eventType
         case eventData
         case userId
@@ -757,11 +762,12 @@ struct AnalyticsEventPayload: Codable {
         case timestamp
     }
     
-    init(flowId: String?, flowVersionId: String?, experimentId: String?, variantId: String?, eventType: String, eventData: [String: Any], userId: String?, sessionId: String, timestamp: Date) {
+    init(flowId: String?, flowVersionId: String?, experimentId: String?, variantId: String?, deviceId: String, eventType: String, eventData: [String: Any], userId: String?, sessionId: String, timestamp: Date) {
         self.flowId = flowId
         self.flowVersionId = flowVersionId
         self.experimentId = experimentId
         self.variantId = variantId
+        self.deviceId = deviceId
         self.eventType = eventType
         self.eventData = eventData.mapValues { AnyCodable($0) }
         self.userId = userId
@@ -782,6 +788,7 @@ struct AnalyticsEventPayload: Codable {
         try container.encodeIfPresent(flowVersionId, forKey: .flowVersionId)
         try container.encodeIfPresent(experimentId, forKey: .experimentId)
         try container.encodeIfPresent(variantId, forKey: .variantId)
+        try container.encode(deviceId, forKey: .deviceId)
         try container.encode(eventType, forKey: .eventType)
         try container.encode(eventData, forKey: .eventData)
         try container.encodeIfPresent(userId, forKey: .userId)

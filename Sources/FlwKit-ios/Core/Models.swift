@@ -13,6 +13,8 @@ public struct FlowPayloadV1: Codable {
     public let screens: [Screen]
     /// App ID (included by backend for Analytics v2; SDK uses it automatically)
     public let appId: String?
+    /// Experiment context for the assigned session (if experiment is running)
+    public let experiment: ExperimentContext?
     
     enum CodingKeys: String, CodingKey {
         case schemaVersion
@@ -27,6 +29,7 @@ public struct FlowPayloadV1: Codable {
         case themes
         case screens
         case appId
+        case experiment
     }
     
     public init(from decoder: Decoder) throws {
@@ -69,6 +72,12 @@ public struct FlowPayloadV1: Codable {
     }
 }
 
+public struct ExperimentContext: Codable {
+    public let id: String
+    public let variantId: String
+    public let variantName: String
+}
+
 // Flow - internal representation (converted from FlowPayloadV1)
 public struct Flow: Codable {
     public let id: String
@@ -81,6 +90,7 @@ public struct Flow: Codable {
     public let schemaVersion: Int
     /// App ID from backend (used automatically for Analytics v2)
     public let appId: String?
+    public let experiment: ExperimentContext?
     
     // Computed property for compatibility
     public var flowKey: String {
@@ -98,10 +108,11 @@ public struct Flow: Codable {
         self.themes = payload.themes
         self.schemaVersion = payload.schemaVersion
         self.appId = payload.appId
+        self.experiment = payload.experiment
     }
     
     // Legacy init for backwards compatibility
-    public init(id: String, key: String, version: Int, screens: [Screen], defaultThemeId: String? = nil, schemaVersion: Int = 1, entryScreenId: String? = nil, themes: [Theme] = [], appId: String? = nil) {
+    public init(id: String, key: String, version: Int, screens: [Screen], defaultThemeId: String? = nil, schemaVersion: Int = 1, entryScreenId: String? = nil, themes: [Theme] = [], appId: String? = nil, experiment: ExperimentContext? = nil) {
         self.id = id
         self.key = key
         self.version = version
@@ -111,6 +122,7 @@ public struct Flow: Codable {
         self.themes = themes
         self.schemaVersion = schemaVersion
         self.appId = appId
+        self.experiment = experiment
     }
 }
 
