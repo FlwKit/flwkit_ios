@@ -32,13 +32,9 @@ class APIClient {
             completion(.failure(FlwKitError.notConfigured))
             return
         }
-        
-        // Get session ID from analytics
+
         let analytics = Analytics.shared
-        let sessionId = analytics.currentSessionId
-        
-        // Step 1: Fetch active flow first to get the actual flowKey
-        // This endpoint returns the active flow for the app (appId extracted from API key)
+
         var urlString = "\(baseURL)/sdk/v1/flow"
         if let userId = userId {
             urlString += "?userId=\(userId)"
@@ -54,83 +50,51 @@ class APIClient {
                 completion(.failure(FlwKitError.invalidResponse))
                 return
             }
-            
+
             switch result {
             case .success(let activeFlow):
-                // Step 2: Now that we have the flowKey, check for A/B tests
-                // A/B test takes priority - if it has flowData, use it instead of active flow
-                self.checkABTestVariant(flowKey: activeFlow.flowKey, userId: userId, sessionId: sessionId) { abTestResult in
-                    // If A/B test has flowData, use it directly (variant takes priority)
-                    if let abTest = abTestResult, abTest.hasActiveTest, let flowPayload = abTest.flowData {
-                        // Convert FlowPayloadV1 to Flow
-                        let variantFlow = Flow(from: flowPayload)
-                        
-                        // Cache the variant flow
-                        self.cache.saveFlow(variantFlow, for: variantFlow.flowKey)
-                        self.cache.saveFlow(variantFlow, for: "active-flow")
-                        
-                        // Register all themes from the response
-                        for theme in variantFlow.themes {
-                            ThemeManager.shared.registerTheme(theme)
-                        }
-                        
-                        // Set flow context and A/B test context in analytics
-                        if let flowVersionId = abTest.flowVersionId {
-                            analytics.setFlowContext(flowId: variantFlow.id, flowVersionId: flowVersionId)
-                        } else {
-                            analytics.setFlowContext(flowId: variantFlow.id, flowVersionId: nil)
-                        }
-                        analytics.setAppIdIfNeeded(variantFlow.appId)
-                        // Store experiment context separately (experimentId and variantId)
-                        analytics.setABTestContext(testId: abTest.experimentId, variantId: abTest.variant?.id)
-                        
-                        completion(.success(variantFlow))
-                        return
-                    }
-                    
-                    // No A/B test or no flowData, use the active flow we already fetched
-                    // Set flow context without version (default published version)
-                    analytics.setFlowContext(flowId: activeFlow.id, flowVersionId: nil)
-                    analytics.setAppIdIfNeeded(activeFlow.appId)
-                    // Clear A/B test context if no active test
-                    analytics.setABTestContext(testId: nil, variantId: nil)
-                    completion(.success(activeFlow))
-                }
-                
+                analytics.setFlowContext(flowId: activeFlow.id, flowVersionId: nil)
+                analytics.setAppIdIfNeeded(activeFlow.appId)
+                analytics.setABTestContext(
+                    testId: activeFlow.experiment?.id,
+                    variantId: activeFlow.experiment?.variantId
+                )
+                completion(.success(activeFlow))
             case .failure(let error):
-                // Extract status code from error
                 let statusCode: Int?
                 if case FlwKitError.httpError(let code) = error {
                     statusCode = code
                 } else {
                     statusCode = nil
                 }
-                
-                // Handle 401 Unauthorized (invalid API key)
+
                 if statusCode == 401 {
                     completion(.failure(error))
                     return
                 }
-                
-                // Handle 404 Not Found (no active flow)
+
                 if statusCode == 404 {
-                    // Try to use cached flow as fallback
                     if let cachedFlow = self.cache.getFlow(flowKey: "active-flow") {
                         analytics.setFlowContext(flowId: cachedFlow.id, flowVersionId: nil)
                         analytics.setAppIdIfNeeded(cachedFlow.appId)
-                        analytics.setABTestContext(testId: nil, variantId: nil)
+                        analytics.setABTestContext(
+                            testId: cachedFlow.experiment?.id,
+                            variantId: cachedFlow.experiment?.variantId
+                        )
                         completion(.success(cachedFlow))
                     } else {
                         completion(.failure(FlwKitError.flowNotFound))
                     }
                     return
                 }
-                
-                // For other errors, try cache as fallback
+
                 if let cachedFlow = self.cache.getFlow(flowKey: "active-flow") {
                     analytics.setFlowContext(flowId: cachedFlow.id, flowVersionId: nil)
                     analytics.setAppIdIfNeeded(cachedFlow.appId)
-                    analytics.setABTestContext(testId: nil, variantId: nil)
+                    analytics.setABTestContext(
+                        testId: cachedFlow.experiment?.id,
+                        variantId: cachedFlow.experiment?.variantId
+                    )
                     completion(.success(cachedFlow))
                 } else {
                     completion(.failure(error))
@@ -190,6 +154,7 @@ class APIClient {
         request.httpMethod = "GET"
         request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(FlwKit.assignmentID, forHTTPHeaderField: "X-FlwKit-Device-ID")
         
         session.dataTask(with: request) { [weak self] data, response, error in
             // Handle errors gracefully - if A/B test check fails, continue without it
@@ -246,6 +211,7 @@ class APIClient {
         request.httpMethod = "GET"
         request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(FlwKit.assignmentID, forHTTPHeaderField: "X-FlwKit-Device-ID")
         
         session.dataTask(with: request) { [weak self] data, response, error in
             if let error = error {
@@ -350,6 +316,7 @@ class APIClient {
         request.httpMethod = "GET"
         request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(FlwKit.assignmentID, forHTTPHeaderField: "X-FlwKit-Device-ID")
         
         session.dataTask(with: request) { [weak self] data, response, error in
             if let error = error {
@@ -544,4 +511,3 @@ enum FlwKitError: LocalizedError {
         }
     }
 }
-
