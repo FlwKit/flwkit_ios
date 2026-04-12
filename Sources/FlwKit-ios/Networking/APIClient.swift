@@ -281,9 +281,36 @@ class APIClient {
                 
                 completion(.success(flow))
             } catch {
+                if let decodingError = error as? DecodingError {
+                    print("FlwKit decode error: \(describeDecodingError(decodingError))")
+                } else {
+                    print("FlwKit decode error: \(error.localizedDescription)")
+                }
                 completion(.failure(error))
             }
         }.resume()
+    }
+
+    private func describeDecodingError(_ error: DecodingError) -> String {
+        switch error {
+        case .keyNotFound(let key, let context):
+            return "keyNotFound '\(key.stringValue)' at \(codingPathString(context.codingPath)): \(context.debugDescription)"
+        case .typeMismatch(let type, let context):
+            return "typeMismatch \(type) at \(codingPathString(context.codingPath)): \(context.debugDescription)"
+        case .valueNotFound(let type, let context):
+            return "valueNotFound \(type) at \(codingPathString(context.codingPath)): \(context.debugDescription)"
+        case .dataCorrupted(let context):
+            return "dataCorrupted at \(codingPathString(context.codingPath)): \(context.debugDescription)"
+        @unknown default:
+            return "unknown decoding error"
+        }
+    }
+    
+    private func codingPathString(_ path: [CodingKey]) -> String {
+        if path.isEmpty {
+            return "<root>"
+        }
+        return path.map { $0.stringValue }.joined(separator: ".")
     }
     
     // Note: Themes are now included in the flow response, so separate fetching is rarely needed

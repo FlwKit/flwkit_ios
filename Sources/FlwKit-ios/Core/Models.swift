@@ -442,40 +442,52 @@ public struct Block: Codable {
         padding = try container.decodeIfPresent(MediaPadding.self, forKey: .padding)
         margin = try container.decodeIfPresent(MediaMargin.self, forKey: .margin)
         borderRadius = try container.decodeIfPresent(Double.self, forKey: .borderRadius)
-        options = try container.decodeIfPresent([ChoiceOption].self, forKey: .options)
-        multiple = try container.decodeIfPresent(Bool.self, forKey: .multiple)
-        placeholder = try container.decodeIfPresent(String.self, forKey: .placeholder)
-        inputType = try container.decodeIfPresent(String.self, forKey: .inputType)
-        required = try container.decodeIfPresent(Bool.self, forKey: .required)
+        if let decodedOptions = try? container.decode(LossyArray<ChoiceOption>.self, forKey: .options) {
+            options = decodedOptions.elements
+        } else {
+            options = nil
+        }
+        multiple = try? container.decodeIfPresent(Bool.self, forKey: .multiple)
+        placeholder = try? container.decodeIfPresent(String.self, forKey: .placeholder)
+        inputType = try? container.decodeIfPresent(String.self, forKey: .inputType)
+        required = try? container.decodeIfPresent(Bool.self, forKey: .required)
         
         // Text input and choice styling properties
-        backgroundColor = try container.decodeIfPresent(String.self, forKey: .backgroundColor)
-        backgroundOpacity = try container.decodeIfPresent(Double.self, forKey: .backgroundOpacity)
-        activeBackgroundColor = try container.decodeIfPresent(String.self, forKey: .activeBackgroundColor)
-        activeBackgroundOpacity = try container.decodeIfPresent(Double.self, forKey: .activeBackgroundOpacity)
-        borderColor = try container.decodeIfPresent(String.self, forKey: .borderColor)
-        borderOpacity = try container.decodeIfPresent(Double.self, forKey: .borderOpacity)
-        borderWidth = try container.decodeIfPresent(Double.self, forKey: .borderWidth)
-        min = try container.decodeIfPresent(Double.self, forKey: .min)
-        max = try container.decodeIfPresent(Double.self, forKey: .max)
-        step = try container.decodeIfPresent(Double.self, forKey: .step)
-        defaultValue = try container.decodeIfPresent(Double.self, forKey: .defaultValue)
-        primary = try container.decodeIfPresent(CTAAction.self, forKey: .primary)
-        secondary = try container.decodeIfPresent(CTAAction.self, forKey: .secondary)
-        sticky = try container.decodeIfPresent(Bool.self, forKey: .sticky)
-        size = try container.decodeIfPresent(String.self, forKey: .size)
+        backgroundColor = try? container.decodeIfPresent(String.self, forKey: .backgroundColor)
+        backgroundOpacity = try? container.decodeIfPresent(Double.self, forKey: .backgroundOpacity)
+        activeBackgroundColor = try? container.decodeIfPresent(String.self, forKey: .activeBackgroundColor)
+        activeBackgroundOpacity = try? container.decodeIfPresent(Double.self, forKey: .activeBackgroundOpacity)
+        borderColor = try? container.decodeIfPresent(String.self, forKey: .borderColor)
+        borderOpacity = try? container.decodeIfPresent(Double.self, forKey: .borderOpacity)
+        borderWidth = try? container.decodeIfPresent(Double.self, forKey: .borderWidth)
+        min = try? container.decodeIfPresent(Double.self, forKey: .min)
+        max = try? container.decodeIfPresent(Double.self, forKey: .max)
+        step = try? container.decodeIfPresent(Double.self, forKey: .step)
+        defaultValue = try? container.decodeIfPresent(Double.self, forKey: .defaultValue)
+        primary = try? container.decodeIfPresent(CTAAction.self, forKey: .primary)
+        secondary = try? container.decodeIfPresent(CTAAction.self, forKey: .secondary)
+        sticky = try? container.decodeIfPresent(Bool.self, forKey: .sticky)
+        size = try? container.decodeIfPresent(String.self, forKey: .size)
         if type == "personalization" {
-            personalizationItems = try container.decodeIfPresent([PersonalizationItem].self, forKey: .items)
+            if let decoded = try? container.decode(LossyArray<PersonalizationItem>.self, forKey: .items) {
+                personalizationItems = decoded.elements
+            } else {
+                personalizationItems = nil
+            }
             processingItems = nil
             items = nil
         } else if type == "processing_animation" {
-            processingItems = try container.decodeIfPresent([String].self, forKey: .items)
+            processingItems = try? container.decodeIfPresent([String].self, forKey: .items)
             personalizationItems = nil
             items = nil
         } else {
             processingItems = nil
             personalizationItems = nil
-            items = try container.decodeIfPresent([BenefitsListItem].self, forKey: .items)
+            if let decoded = try? container.decode(LossyArray<BenefitsListItem>.self, forKey: .items) {
+                items = decoded.elements
+            } else {
+                items = nil
+            }
         }
 
         // Decode icon properties with maximum flexibility - handle all possible formats and types
@@ -508,26 +520,34 @@ public struct Block: Codable {
         }()
         iconSize = decodedIconSize
         
-        quote = try container.decodeIfPresent(String.self, forKey: .quote)
-        author = try container.decodeIfPresent(String.self, forKey: .author)
-        meta = try container.decodeIfPresent(String.self, forKey: .meta)
-        text = try container.decodeIfPresent(String.self, forKey: .text)
-        fillColor = try container.decodeIfPresent(String.self, forKey: .fillColor)
-        fillOpacity = try container.decodeIfPresent(Double.self, forKey: .fillOpacity)
-        headline = try container.decodeIfPresent(String.self, forKey: .headline)
-        permissionDescription = try container.decodeIfPresent(String.self, forKey: .permissionDescription)
-        ctaLabel = try container.decodeIfPresent(String.self, forKey: .ctaLabel)
-        skipLabel = try container.decodeIfPresent(String.self, forKey: .skipLabel)
-        onGranted = try container.decodeIfPresent(String.self, forKey: .onGranted)
-        onDenied = try container.decodeIfPresent(String.self, forKey: .onDenied)
-        subHeadline = try container.decodeIfPresent(String.self, forKey: .subHeadline)
-        durationSeconds = try container.decodeIfPresent(Double.self, forKey: .durationSeconds)
-        autoAdvance = try container.decodeIfPresent(Bool.self, forKey: .autoAdvance)
-        leftLabel = try container.decodeIfPresent(String.self, forKey: .leftLabel)
-        rightLabel = try container.decodeIfPresent(String.self, forKey: .rightLabel)
-        rows = try container.decodeIfPresent([ComparisonRow].self, forKey: .rows)
-        cards = try container.decodeIfPresent([SwipeCard].self, forKey: .cards)
-        onComplete = try container.decodeIfPresent(String.self, forKey: .onComplete)
+        quote = try? container.decodeIfPresent(String.self, forKey: .quote)
+        author = try? container.decodeIfPresent(String.self, forKey: .author)
+        meta = try? container.decodeIfPresent(String.self, forKey: .meta)
+        text = try? container.decodeIfPresent(String.self, forKey: .text)
+        fillColor = try? container.decodeIfPresent(String.self, forKey: .fillColor)
+        fillOpacity = try? container.decodeIfPresent(Double.self, forKey: .fillOpacity)
+        headline = try? container.decodeIfPresent(String.self, forKey: .headline)
+        permissionDescription = try? container.decodeIfPresent(String.self, forKey: .permissionDescription)
+        ctaLabel = try? container.decodeIfPresent(String.self, forKey: .ctaLabel)
+        skipLabel = try? container.decodeIfPresent(String.self, forKey: .skipLabel)
+        onGranted = try? container.decodeIfPresent(String.self, forKey: .onGranted)
+        onDenied = try? container.decodeIfPresent(String.self, forKey: .onDenied)
+        subHeadline = try? container.decodeIfPresent(String.self, forKey: .subHeadline)
+        durationSeconds = try? container.decodeIfPresent(Double.self, forKey: .durationSeconds)
+        autoAdvance = try? container.decodeIfPresent(Bool.self, forKey: .autoAdvance)
+        leftLabel = try? container.decodeIfPresent(String.self, forKey: .leftLabel)
+        rightLabel = try? container.decodeIfPresent(String.self, forKey: .rightLabel)
+        if let decodedRows = try? container.decode(LossyArray<ComparisonRow>.self, forKey: .rows) {
+            rows = decodedRows.elements
+        } else {
+            rows = nil
+        }
+        if let decodedCards = try? container.decode(LossyArray<SwipeCard>.self, forKey: .cards) {
+            cards = decodedCards.elements
+        } else {
+            cards = nil
+        }
+        onComplete = try? container.decodeIfPresent(String.self, forKey: .onComplete)
         
         // Handle "height" - media, spacer, text_input, cta, and choice blocks use it as Double
         let heightValue = try container.decodeIfPresent(Double.self, forKey: .height)
@@ -657,6 +677,25 @@ public struct Block: Codable {
         } else {
             try container.encodeIfPresent(height, forKey: .height)
         }
+    }
+}
+
+private struct LossyArray<Element: Decodable>: Decodable {
+    let elements: [Element]
+    
+    init(from decoder: Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        var decoded: [Element] = []
+        
+        while !container.isAtEnd {
+            if let item = try? container.decode(Element.self) {
+                decoded.append(item)
+            } else {
+                _ = try? container.decode(AnyCodable.self)
+            }
+        }
+        
+        elements = decoded
     }
 }
 
