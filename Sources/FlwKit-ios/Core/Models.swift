@@ -189,10 +189,13 @@ public struct Screen: Codable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
-        self.id =
-            (try container.decodeIfPresent(String.self, forKey: .id)) ??
-            (try container.decodeIfPresent(String.self, forKey: ._id)) ??
-            UUID().uuidString
+        if let value = try container.decodeIfPresent(String.self, forKey: .id) {
+            self.id = value
+        } else if let value = try container.decodeIfPresent(String.self, forKey: ._id) {
+            self.id = value
+        } else {
+            self.id = UUID().uuidString
+        }
         self.type = try container.decodeIfPresent(String.self, forKey: .type) ?? "standard"
         self.themeId = try container.decodeIfPresent(String.self, forKey: .themeId)
         self.blocks = try container.decodeIfPresent([Block].self, forKey: .blocks) ?? []
@@ -206,6 +209,23 @@ public struct Screen: Codable {
         self.gradientEndColor = try container.decodeIfPresent(String.self, forKey: .gradientEndColor)
         self.gradientEndOpacity = try container.decodeIfPresent(Double.self, forKey: .gradientEndOpacity)
         self.gradientAngle = try container.decodeIfPresent(Double.self, forKey: .gradientAngle)
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(type, forKey: .type)
+        try container.encodeIfPresent(themeId, forKey: .themeId)
+        try container.encode(blocks, forKey: .blocks)
+        try container.encodeIfPresent(spacing, forKey: .spacing)
+        try container.encodeIfPresent(backgroundColor, forKey: .backgroundColor)
+        try container.encodeIfPresent(backgroundOpacity, forKey: .backgroundOpacity)
+        try container.encodeIfPresent(backgroundType, forKey: .backgroundType)
+        try container.encodeIfPresent(gradientStartColor, forKey: .gradientStartColor)
+        try container.encodeIfPresent(gradientStartOpacity, forKey: .gradientStartOpacity)
+        try container.encodeIfPresent(gradientEndColor, forKey: .gradientEndColor)
+        try container.encodeIfPresent(gradientEndOpacity, forKey: .gradientEndOpacity)
+        try container.encodeIfPresent(gradientAngle, forKey: .gradientAngle)
     }
 }
 
@@ -826,17 +846,42 @@ public struct Theme: Codable {
     
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.id =
-            (try container.decodeIfPresent(String.self, forKey: .id)) ??
-            (try container.decodeIfPresent(String.self, forKey: ._id)) ??
-            "theme_default"
-        self.tokens = try container.decodeIfPresent(ThemeTokens.self, forKey: .tokens) ?? ThemeTokens()
+        if let value = try container.decodeIfPresent(String.self, forKey: .id) {
+            self.id = value
+        } else if let value = try container.decodeIfPresent(String.self, forKey: ._id) {
+            self.id = value
+        } else {
+            self.id = "theme_default"
+        }
+        self.tokens = try container.decodeIfPresent(ThemeTokens.self, forKey: .tokens)
+            ?? ThemeTokens(
+                background: "#FFFFFF",
+                surface: "#F3F4F6",
+                primary: "#6EBA81",
+                textPrimary: "#111827",
+                textSecondary: "#6B7280",
+                radius: "md",
+                buttonStyle: "filled",
+                font: "system"
+            )
         self.backgroundType = try container.decodeIfPresent(String.self, forKey: .backgroundType)
         self.gradientStartColor = try container.decodeIfPresent(String.self, forKey: .gradientStartColor)
         self.gradientStartOpacity = try container.decodeIfPresent(Double.self, forKey: .gradientStartOpacity)
         self.gradientEndColor = try container.decodeIfPresent(String.self, forKey: .gradientEndColor)
         self.gradientEndOpacity = try container.decodeIfPresent(Double.self, forKey: .gradientEndOpacity)
         self.gradientAngle = try container.decodeIfPresent(Double.self, forKey: .gradientAngle)
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(tokens, forKey: .tokens)
+        try container.encodeIfPresent(backgroundType, forKey: .backgroundType)
+        try container.encodeIfPresent(gradientStartColor, forKey: .gradientStartColor)
+        try container.encodeIfPresent(gradientStartOpacity, forKey: .gradientStartOpacity)
+        try container.encodeIfPresent(gradientEndColor, forKey: .gradientEndColor)
+        try container.encodeIfPresent(gradientEndOpacity, forKey: .gradientEndOpacity)
+        try container.encodeIfPresent(gradientAngle, forKey: .gradientAngle)
     }
 }
 
@@ -881,19 +926,28 @@ public struct ThemeTokens: Codable {
         self.surface = try container.decodeIfPresent(String.self, forKey: .surface) ?? "#F3F4F6"
         self.primary = try container.decodeIfPresent(String.self, forKey: .primary) ?? "#6EBA81"
         self.secondary = try container.decodeIfPresent(String.self, forKey: .secondary)
-        self.textPrimary =
-            (try container.decodeIfPresent(String.self, forKey: .textPrimary)) ??
-            (try container.decodeIfPresent(String.self, forKey: .textPrimarySnake)) ??
-            "#111827"
-        self.textSecondary =
-            (try container.decodeIfPresent(String.self, forKey: .textSecondary)) ??
-            (try container.decodeIfPresent(String.self, forKey: .textSecondarySnake)) ??
-            "#6B7280"
+        if let value = try container.decodeIfPresent(String.self, forKey: .textPrimary) {
+            self.textPrimary = value
+        } else if let value = try container.decodeIfPresent(String.self, forKey: .textPrimarySnake) {
+            self.textPrimary = value
+        } else {
+            self.textPrimary = "#111827"
+        }
+        if let value = try container.decodeIfPresent(String.self, forKey: .textSecondary) {
+            self.textSecondary = value
+        } else if let value = try container.decodeIfPresent(String.self, forKey: .textSecondarySnake) {
+            self.textSecondary = value
+        } else {
+            self.textSecondary = "#6B7280"
+        }
         self.radius = try container.decodeIfPresent(String.self, forKey: .radius) ?? "md"
-        self.buttonStyle =
-            (try container.decodeIfPresent(String.self, forKey: .buttonStyle)) ??
-            (try container.decodeIfPresent(String.self, forKey: .buttonStyleSnake)) ??
-            "filled"
+        if let value = try container.decodeIfPresent(String.self, forKey: .buttonStyle) {
+            self.buttonStyle = value
+        } else if let value = try container.decodeIfPresent(String.self, forKey: .buttonStyleSnake) {
+            self.buttonStyle = value
+        } else {
+            self.buttonStyle = "filled"
+        }
         self.font = try container.decodeIfPresent(String.self, forKey: .font) ?? "system"
     }
     
