@@ -17,12 +17,55 @@ public struct FlowPayloadV1: Codable {
     enum CodingKeys: String, CodingKey {
         case schemaVersion
         case flowKey
+        case key
+        case id
+        case flowId
         case version
         case entryScreenId
         case defaultThemeId
+        case theme
         case themes
         case screens
         case appId
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        // Screens are required for rendering; default to empty to avoid hard decode failures.
+        let decodedScreens = try container.decodeIfPresent([Screen].self, forKey: .screens) ?? []
+        self.screens = decodedScreens
+        
+        self.schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 1
+        self.version = try container.decodeIfPresent(Int.self, forKey: .version) ?? 1
+        
+        // Support multiple backend keys for flow identity.
+        self.flowKey =
+            (try container.decodeIfPresent(String.self, forKey: .flowKey)) ??
+            (try container.decodeIfPresent(String.self, forKey: .key)) ??
+            (try container.decodeIfPresent(String.self, forKey: .flowId)) ??
+            (try container.decodeIfPresent(String.self, forKey: .id)) ??
+            "flow"
+        
+        // Support both themes array and legacy single theme payload.
+        if let decodedThemes = try container.decodeIfPresent([Theme].self, forKey: .themes) {
+            self.themes = decodedThemes
+        } else if let decodedTheme = try container.decodeIfPresent(Theme.self, forKey: .theme) {
+            self.themes = [decodedTheme]
+        } else {
+            self.themes = []
+        }
+        
+        self.defaultThemeId =
+            (try container.decodeIfPresent(String.self, forKey: .defaultThemeId)) ??
+            self.themes.first?.id
+        
+        self.entryScreenId =
+            (try container.decodeIfPresent(String.self, forKey: .entryScreenId)) ??
+            decodedScreens.first?.id ??
+            ""
+        
+        self.appId = try container.decodeIfPresent(String.self, forKey: .appId)
     }
 }
 
