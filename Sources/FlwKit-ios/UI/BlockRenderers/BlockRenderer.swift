@@ -18,7 +18,8 @@ class BlockRendererRegistry {
     }
     
     func render(block: Block, theme: Theme, state: FlowState, onAnswer: @escaping (String, Any) -> Void, onAction: @escaping (String, String?) -> Void) -> AnyView {
-        guard let renderer = renderers[block.type] else {
+        let normalizedType = normalizeRendererType(block.type)
+        guard let renderer = renderers[normalizedType] else {
             return AnyView(UnsupportedBlockView(blockType: block.type))
         }
         return renderer.render(block: block, theme: theme, state: state, onAnswer: onAnswer, onAction: onAction)
@@ -48,6 +49,14 @@ class BlockRendererRegistry {
         register("processing_animation", renderer: ProcessingAnimationBlockRenderer())
         register("comparison_table", renderer: ComparisonTableBlockRenderer())
         register("swipe_cards", renderer: SwipeCardsBlockRenderer())
+    }
+    
+    private func normalizeRendererType(_ raw: String) -> String {
+        return raw
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "-", with: "_")
+            .replacingOccurrences(of: " ", with: "_")
+            .lowercased()
     }
 }
 

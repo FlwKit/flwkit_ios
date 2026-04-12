@@ -356,7 +356,9 @@ public struct Block: Codable {
     public let onComplete: String?
     
     enum CodingKeys: String, CodingKey {
-        case type, key, style, title, subtitle
+        case type
+        case blockType
+        case key, style, title, subtitle
         case url
         case imageUrl = "image_url"
         case videoUrl = "video_url"
@@ -410,7 +412,11 @@ public struct Block: Codable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
-        type = try container.decodeIfPresent(String.self, forKey: .type) ?? "unknown"
+        let rawType =
+            (try? container.decodeIfPresent(String.self, forKey: .type)) ??
+            (try? container.decodeIfPresent(String.self, forKey: .blockType)) ??
+            "unknown"
+        type = normalizeBlockType(rawType)
         key = try container.decodeIfPresent(String.self, forKey: .key)
         style = try container.decodeIfPresent(String.self, forKey: .style)
         title = try container.decodeIfPresent(String.self, forKey: .title)
@@ -677,6 +683,25 @@ public struct Block: Codable {
         } else {
             try container.encodeIfPresent(height, forKey: .height)
         }
+    }
+}
+
+private func normalizeBlockType(_ raw: String) -> String {
+    let normalized = raw
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+        .replacingOccurrences(of: "-", with: "_")
+        .replacingOccurrences(of: " ", with: "_")
+        .lowercased()
+    
+    switch normalized {
+    case "call_to_action", "cta_block", "button":
+        return "cta"
+    case "image", "video":
+        return "media"
+    case "heading", "headline":
+        return "header"
+    default:
+        return normalized
     }
 }
 
