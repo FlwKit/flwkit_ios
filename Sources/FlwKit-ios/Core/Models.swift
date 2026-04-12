@@ -43,12 +43,17 @@ public struct FlowPayloadV1: Codable {
         self.version = try container.decodeIfPresent(Int.self, forKey: .version) ?? 1
         
         // Support multiple backend keys for flow identity.
-        self.flowKey =
-            (try container.decodeIfPresent(String.self, forKey: .flowKey)) ??
-            (try container.decodeIfPresent(String.self, forKey: .key)) ??
-            (try container.decodeIfPresent(String.self, forKey: .flowId)) ??
-            (try container.decodeIfPresent(String.self, forKey: .id)) ??
-            "flow"
+        if let value = try container.decodeIfPresent(String.self, forKey: .flowKey) {
+            self.flowKey = value
+        } else if let value = try container.decodeIfPresent(String.self, forKey: .key) {
+            self.flowKey = value
+        } else if let value = try container.decodeIfPresent(String.self, forKey: .flowId) {
+            self.flowKey = value
+        } else if let value = try container.decodeIfPresent(String.self, forKey: .id) {
+            self.flowKey = value
+        } else {
+            self.flowKey = "flow"
+        }
         
         // Support both themes array and legacy single theme payload.
         if let decodedThemes = try container.decodeIfPresent([Theme].self, forKey: .themes) {
@@ -69,6 +74,7 @@ public struct FlowPayloadV1: Codable {
             ""
         
         self.appId = try container.decodeIfPresent(String.self, forKey: .appId)
+        self.experiment = try container.decodeIfPresent(ExperimentContext.self, forKey: .experiment)
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -81,6 +87,7 @@ public struct FlowPayloadV1: Codable {
         try container.encode(themes, forKey: .themes)
         try container.encode(screens, forKey: .screens)
         try container.encodeIfPresent(appId, forKey: .appId)
+        try container.encodeIfPresent(experiment, forKey: .experiment)
     }
 }
 
