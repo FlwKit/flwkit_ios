@@ -851,7 +851,7 @@ private func normalizeBlockType(_ raw: String) -> String {
     switch normalized {
     case "call_to_action", "cta_block", "button":
         return "cta"
-    case "image", "video":
+    case "image", "video", "media_block", "image_block", "video_block":
         return "media"
     case "heading", "headline":
         return "header"
