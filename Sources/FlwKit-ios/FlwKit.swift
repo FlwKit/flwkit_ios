@@ -173,13 +173,19 @@ public struct FlwKitFlowView: View {
     private func loadFlow() {
         error = nil
 
-        // If a previously cached flow exists, render it immediately and
-        // refresh in the background so the cache stays warm for next time.
+        // If a previously cached flow exists, render it immediately, then
+        // fetch fresh data and update the currently displayed flow.
         if let cachedFlow = FlowCache.shared.getFlow(flowKey: "active-flow") {
             flow = cachedFlow
             isLoading = false
-            Task {
-                await apiClient.fetchAndCacheFlow(userId: analytics.currentUserId)
+            apiClient.fetchFlow(userId: analytics.currentUserId) { result in
+                switch result {
+                case .success(let fetchedFlow):
+                    self.flow = fetchedFlow
+                case .failure:
+                    // Keep showing cached flow if refresh fails.
+                    break
+                }
             }
             return
         }
@@ -200,5 +206,4 @@ public struct FlwKitFlowView: View {
         }
     }
 }
-
 
