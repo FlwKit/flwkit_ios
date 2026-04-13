@@ -80,6 +80,7 @@ struct MediaBlockRenderer: BlockRenderer {
         
         // Border radius
         let borderRadius = block.borderRadius.map { CGFloat($0) } ?? theme.tokens.cornerRadius
+        let fallbackHeight: CGFloat = 220
         
         // Calculate alignment (default to center)
         let alignment: HorizontalAlignment = {
@@ -99,7 +100,7 @@ struct MediaBlockRenderer: BlockRenderer {
                         case .empty:
                             ProgressView()
                     .applyWidth(widthMode)
-                    .frame(height: height ?? 200)
+                    .frame(height: height ?? fallbackHeight)
                     .applyAspectRatio(aspectRatio)
                         case .success(let image):
                             image
@@ -107,6 +108,7 @@ struct MediaBlockRenderer: BlockRenderer {
                     .applyAspectRatio(aspectRatio)
                     .applyWidth(widthMode)
                     .frame(height: height)
+                    .frame(minHeight: height == nil ? fallbackHeight : nil)
                     .cornerRadius(borderRadius)
                     .clipped()
                         case .failure:
