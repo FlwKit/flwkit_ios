@@ -13,7 +13,9 @@ struct MediaBlockRenderer: BlockRenderer {
         let imageUrlString = block.url ?? block.imageUrl
         
         // Check if URL string exists and is not empty
-        guard let urlString = imageUrlString, !urlString.isEmpty, let url = URL(string: urlString) else {
+        guard let urlString = imageUrlString,
+              !urlString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              let url = makeURL(from: urlString) else {
         return AnyView(
                 MediaPlaceholderView(
                     message: "Image not available",
@@ -154,6 +156,18 @@ struct MediaBlockRenderer: BlockRenderer {
     }
 }
 
+private func makeURL(from raw: String) -> URL? {
+    let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    if let url = URL(string: trimmed), url.scheme != nil {
+        return url
+    }
+    if let encoded = trimmed.addingPercentEncoding(withAllowedCharacters: .urlFragmentAllowed),
+       let encodedURL = URL(string: encoded), encodedURL.scheme != nil {
+        return encodedURL
+    }
+    return URL(string: trimmed)
+}
+
 // Helper extensions
 extension View {
     @ViewBuilder
@@ -208,4 +222,3 @@ struct MediaPlaceholderView: View {
         .padding(.trailing, margin?.right.map { CGFloat($0) } ?? 0)
     }
 }
-

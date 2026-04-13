@@ -28,10 +28,12 @@ struct CTABlockRenderer: BlockRenderer {
         // Get font weight (default: normal)
         let fontWeight: Font.Weight = {
             switch block.fontWeight?.lowercased() {
+            case "normal":
+                return .regular
             case "bold":
                 return .bold
             default:
-                return .regular // Default to normal
+                return .bold // Default to bold to match dashboard preview
             }
         }()
         
