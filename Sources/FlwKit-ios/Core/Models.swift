@@ -385,6 +385,9 @@ public struct Block: Codable {
         case required, min, max, step
         case defaultValue = "default_value"
         case primary, secondary, sticky, size, items, quote, author, meta, text
+        case legacyCTALabel = "label"
+        case legacyCTAAction = "action"
+        case legacyCTATarget = "target"
         case fillColor = "fillColor"
         case fillOpacity = "fillOpacity"
         case icon
@@ -419,7 +422,18 @@ public struct Block: Codable {
         type = normalizeBlockType(rawType)
         key = try container.decodeIfPresent(String.self, forKey: .key)
         style = try container.decodeIfPresent(String.self, forKey: .style)
-        title = try container.decodeIfPresent(String.self, forKey: .title)
+
+        let decodedTitle = try? container.decodeIfPresent(String.self, forKey: .title)
+        let decodedText = try? container.decodeIfPresent(String.self, forKey: .text)
+        let decodedHeadline = try? container.decodeIfPresent(String.self, forKey: .headline)
+
+        // Backward compatibility:
+        // - legacy heading blocks may store content under text/headline instead of title.
+        if type == "header" {
+            title = decodedTitle ?? decodedText ?? decodedHeadline
+        } else {
+            title = decodedTitle
+        }
         subtitle = try container.decodeIfPresent(String.self, forKey: .subtitle)
         
         // Header typography properties
@@ -470,8 +484,29 @@ public struct Block: Codable {
         max = try? container.decodeIfPresent(Double.self, forKey: .max)
         step = try? container.decodeIfPresent(Double.self, forKey: .step)
         defaultValue = try? container.decodeIfPresent(Double.self, forKey: .defaultValue)
-        primary = try? container.decodeIfPresent(CTAAction.self, forKey: .primary)
+        let decodedPrimary = try? container.decodeIfPresent(CTAAction.self, forKey: .primary)
         secondary = try? container.decodeIfPresent(CTAAction.self, forKey: .secondary)
+        if type == "cta", decodedPrimary == nil {
+            let legacyLabel = try? container.decodeIfPresent(String.self, forKey: .legacyCTALabel)
+            let legacyAction = try? container.decodeIfPresent(String.self, forKey: .legacyCTAAction)
+            let legacyTarget = try? container.decodeIfPresent(String.self, forKey: .legacyCTATarget)
+            if let legacyLabel, !legacyLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                let resolvedLegacyAction: String = {
+                    guard let legacyAction else { return "next" }
+                    let trimmed = legacyAction.trimmingCharacters(in: .whitespacesAndNewlines)
+                    return trimmed.isEmpty ? "next" : trimmed
+                }()
+                primary = CTAAction(
+                    label: legacyLabel,
+                    action: resolvedLegacyAction,
+                    target: legacyTarget
+                )
+            } else {
+                primary = nil
+            }
+        } else {
+            primary = decodedPrimary
+        }
         sticky = try? container.decodeIfPresent(Bool.self, forKey: .sticky)
         size = try? container.decodeIfPresent(String.self, forKey: .size)
         if type == "personalization" {
@@ -529,7 +564,7 @@ public struct Block: Codable {
         quote = try? container.decodeIfPresent(String.self, forKey: .quote)
         author = try? container.decodeIfPresent(String.self, forKey: .author)
         meta = try? container.decodeIfPresent(String.self, forKey: .meta)
-        text = try? container.decodeIfPresent(String.self, forKey: .text)
+        text = decodedText
         fillColor = try? container.decodeIfPresent(String.self, forKey: .fillColor)
         fillOpacity = try? container.decodeIfPresent(Double.self, forKey: .fillOpacity)
         headline = try? container.decodeIfPresent(String.self, forKey: .headline)
@@ -854,11 +889,48 @@ public struct CTAAction: Codable {
     public let label: String
     public let action: String
     public let target: String?
+
+    enum CodingKeys: String, CodingKey {
+        case label
+        case text
+        case title
+        case action
+        case type
+        case target
+        case targetId
+    }
     
     public init(label: String, action: String, target: String? = nil) {
         self.label = label
         self.action = action
         self.target = target
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let decodedLabel =
+            (try? container.decodeIfPresent(String.self, forKey: .label)) ??
+            (try? container.decodeIfPresent(String.self, forKey: .text)) ??
+            (try? container.decodeIfPresent(String.self, forKey: .title)) ??
+            "Continue"
+        let decodedAction =
+            (try? container.decodeIfPresent(String.self, forKey: .action)) ??
+            (try? container.decodeIfPresent(String.self, forKey: .type)) ??
+            "next"
+        let decodedTarget =
+            (try? container.decodeIfPresent(String.self, forKey: .target)) ??
+            (try? container.decodeIfPresent(String.self, forKey: .targetId))
+
+        label = decodedLabel
+        action = decodedAction
+        target = decodedTarget
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(label, forKey: .label)
+        try container.encode(action, forKey: .action)
+        try container.encodeIfPresent(target, forKey: .target)
     }
 }
 

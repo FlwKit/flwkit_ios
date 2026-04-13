@@ -100,6 +100,17 @@ extension ThemeTokens {
 
 extension Color {
     init(hex: String) {
+        let raw = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lower = raw.lowercased()
+        if lower.hasPrefix("rgba"), let parsed = Color.fromRgba(raw) {
+            self = parsed
+            return
+        }
+        if lower.hasPrefix("rgb"), let parsed = Color.fromRgb(raw) {
+            self = parsed
+            return
+        }
+
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var int: UInt64 = 0
         Scanner(string: hex).scanHexInt64(&int)
@@ -151,6 +162,59 @@ extension Color {
             opacity: a
         )
     }
+
+    /// Parse rgb color string (e.g., "rgb(156, 163, 175)")
+    static func fromRgb(_ rgbString: String) -> Color? {
+        let pattern = #"rgb\((\d+),\s*(\d+),\s*(\d+)\)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else {
+            return nil
+        }
+
+        let nsString = rgbString as NSString
+        let range = NSRange(location: 0, length: nsString.length)
+        guard let match = regex.firstMatch(in: rgbString, range: range) else {
+            return nil
+        }
+
+        guard let r = Double(nsString.substring(with: match.range(at: 1))),
+              let g = Double(nsString.substring(with: match.range(at: 2))),
+              let b = Double(nsString.substring(with: match.range(at: 3))) else {
+            return nil
+        }
+
+        return Color(
+            .sRGB,
+            red: r / 255.0,
+            green: g / 255.0,
+            blue: b / 255.0,
+            opacity: 1.0
+        )
+    }
+
+    /// Resolve generic block color supporting hex/rgb/rgba + explicit opacity.
+    static func resolveBlockColor(
+        color: String?,
+        opacity: Double?,
+        fallback: String
+    ) -> Color {
+        let raw = (color?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
+        let normalized = raw.isEmpty ? fallback : raw
+        let lower = normalized.lowercased()
+
+        if lower.hasPrefix("rgba") {
+            return Color.fromRgba(normalized) ?? Color(hex: fallback)
+        }
+
+        if lower.hasPrefix("rgb") {
+            let base = Color.fromRgb(normalized) ?? Color(hex: fallback)
+            let finalOpacity = opacity.map { max(0, min(100, $0)) / 100.0 } ?? 1.0
+            return finalOpacity < 1.0 ? base.opacity(finalOpacity) : base
+        }
+
+        let base = Color(hex: normalized)
+        let finalOpacity = opacity.map { max(0, min(100, $0)) / 100.0 } ?? 1.0
+        return finalOpacity < 1.0 ? base.opacity(finalOpacity) : base
+    }
     
     /// Resolve subtitle color with proper handling of hex/rgba and opacity
     static func resolveSubtitleColor(
@@ -184,17 +248,7 @@ extension Color {
         opacity: Double?,
         themeTextSecondary: String
     ) -> Color {
-        guard let colorString = color else {
-            return Color(hex: themeTextSecondary)
-        }
-
-        if colorString.lowercased().hasPrefix("rgba") {
-            return Color.fromRgba(colorString) ?? Color(hex: themeTextSecondary)
-        }
-
-        let finalOpacity = opacity.map { $0 / 100.0 } ?? 1.0
-        let resolvedColor = Color(hex: colorString)
-        return finalOpacity < 1.0 ? resolvedColor.opacity(finalOpacity) : resolvedColor
+        resolveBlockColor(color: color, opacity: opacity, fallback: themeTextSecondary)
     }
 }
 
@@ -287,4 +341,3 @@ enum Spacing {
         }
     }
 }
-
