@@ -7,29 +7,23 @@ struct CTABlockRenderer: BlockRenderer {
         let analytics = Analytics.shared
         let screenId = state.currentScreenId ?? ""
         
-        // Get text color with opacity (default: white "#FFFFFF")
-        let textColor: Color = {
-            let baseColor = block.color ?? "#FFFFFF" // Default to white for CTA
-            let opacity = block.opacity != nil ? block.opacity! / 100.0 : 1.0
-            let color = Color(hex: baseColor)
-            return opacity < 1.0 ? color.opacity(opacity) : color
-        }()
-        
-        // Get background color with opacity (default: theme's primary)
-        let backgroundColor: Color = {
-            let baseColor = block.backgroundColor ?? tokens.primary
-            let opacity = block.backgroundOpacity != nil ? block.backgroundOpacity! / 100.0 : 1.0
-            let color = Color(hex: baseColor)
-            return opacity < 1.0 ? color.opacity(opacity) : color
-        }()
-        
-        // Get border color with opacity (default: theme's primary)
-        let borderColor: Color = {
-            let baseColor = block.borderColor ?? tokens.primary
-            let opacity = block.borderOpacity != nil ? block.borderOpacity! / 100.0 : 1.0
-            let color = Color(hex: baseColor)
-            return opacity < 1.0 ? color.opacity(opacity) : color
-        }()
+        let textColor = Color.resolveBlockColor(
+            color: block.color,
+            opacity: block.opacity,
+            fallback: "#FFFFFF"
+        )
+
+        let backgroundColor = Color.resolveBlockColor(
+            color: block.backgroundColor,
+            opacity: block.backgroundOpacity,
+            fallback: tokens.primary
+        )
+
+        let borderColor = Color.resolveBlockColor(
+            color: block.borderColor,
+            opacity: block.borderOpacity,
+            fallback: tokens.primary
+        )
         
         // Get font weight (default: normal)
         let fontWeight: Font.Weight = {

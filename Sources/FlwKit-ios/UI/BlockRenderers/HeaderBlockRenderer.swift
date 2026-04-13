@@ -17,20 +17,12 @@ struct HeaderBlockRenderer: BlockRenderer {
             }
         }()
         
-        // Get color (default: theme's textPrimary)
-        let baseColor = block.color ?? tokens.textPrimary
-        
-        // Get opacity (default: 100% = 1.0)
-        let opacityValue = block.opacity != nil ? block.opacity! / 100.0 : 1.0
-        
-        // Convert hex color to Color with opacity
-        let textColor: Color = {
-            let color = Color(hex: baseColor)
-            if opacityValue < 1.0 {
-                return color.opacity(opacityValue)
-            }
-            return color
-        }()
+        // Support hex/rgb/rgba color strings.
+        let textColor = Color.resolveBlockColor(
+            color: block.color,
+            opacity: block.opacity,
+            fallback: tokens.textPrimary
+        )
         
         // Get font weight (default: bold)
         let fontWeight: Font.Weight = {
@@ -171,4 +163,3 @@ struct HeaderBlockRenderer: BlockRenderer {
         )
     }
 }
-
