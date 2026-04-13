@@ -375,7 +375,14 @@ public struct Block: Codable {
         case key, style, title, subtitle
         case url
         case imageUrl = "image_url"
+        case imageUrlCamel = "imageUrl"
         case videoUrl = "video_url"
+        case videoUrlCamel = "videoUrl"
+        case signedUrl = "signedUrl"
+        case signedUrlSnake = "signed_url"
+        case src
+        case mediaUrl = "mediaUrl"
+        case mediaUrlSnake = "media_url"
         case aspect, align, width
         case subtitleColor, subtitleOpacity, subtitleFontSize, subtitleAlign, subtitleSpacing
         case height // Used by both media and spacer blocks (as Double)
@@ -536,10 +543,17 @@ public struct Block: Codable {
         subtitleAlign = decodeString(.subtitleAlign)
         subtitleSpacing = decodeDouble(.subtitleSpacing)
         
-        // Try to decode URL - check multiple possible field names
-        url = decodeString(.url)
-        imageUrl = decodeString(.imageUrl)
-        videoUrl = decodeString(.videoUrl)
+        // Try to decode URL - support legacy and alternate key variants
+        let decodedURL =
+            decodeString(.url) ??
+            decodeString(.signedUrl) ??
+            decodeString(.signedUrlSnake) ??
+            decodeString(.mediaUrl) ??
+            decodeString(.mediaUrlSnake) ??
+            decodeString(.src)
+        url = decodedURL
+        imageUrl = decodeString(.imageUrl) ?? decodeString(.imageUrlCamel)
+        videoUrl = decodeString(.videoUrl) ?? decodeString(.videoUrlCamel)
         aspect = decodeString(.aspect)
         // Note: align is already decoded above (shared between header and media blocks)
         width =
