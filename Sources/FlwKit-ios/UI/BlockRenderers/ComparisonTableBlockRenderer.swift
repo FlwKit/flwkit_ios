@@ -8,50 +8,70 @@ struct ComparisonTableBlockRenderer: BlockRenderer {
         onAnswer: @escaping (String, Any) -> Void,
         onAction: @escaping (String, String?) -> Void
     ) -> AnyView {
+        let rows = Array((block.rows ?? []).prefix(4))
+        let borderColor = theme.tokens.textSecondaryColor.opacity(0.40)
+        let cardBackground = theme.tokens.surfaceColor.opacity(0.88)
+
         AnyView(
-            VStack(spacing: 14) {
+            VStack(spacing: 0) {
                 Text(block.headline ?? "See the difference")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.system(size: 18, weight: .semibold))
                     .multilineTextAlignment(.center)
                     .foregroundColor(theme.tokens.textPrimaryColor)
+                    .padding(.bottom, 12)
 
-                HStack {
-                    Spacer()
+                HStack(spacing: 8) {
+                    Color.clear
+                        .frame(maxWidth: .infinity)
                     Text(block.leftLabel ?? "Without")
-                        .font(.caption.weight(.semibold))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(theme.tokens.textSecondaryColor)
                         .frame(maxWidth: .infinity)
+                        .multilineTextAlignment(.center)
                     Text(block.rightLabel ?? "With")
-                        .font(.caption.weight(.semibold))
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(theme.tokens.primaryColor)
                         .frame(maxWidth: .infinity)
+                        .multilineTextAlignment(.center)
                 }
 
-                ForEach(Array((block.rows ?? []).enumerated()), id: \.offset) { _, row in
-                    VStack(spacing: 0) {
+                VStack(spacing: 4) {
+                    ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
                         HStack(spacing: 8) {
                             Text(row.feature)
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.system(size: 12))
                                 .foregroundColor(theme.tokens.textPrimaryColor)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             Text(row.leftValue)
-                                .font(.system(size: 13))
+                                .font(.system(size: 12))
                                 .foregroundColor(theme.tokens.textSecondaryColor)
                                 .frame(maxWidth: .infinity)
+                                .multilineTextAlignment(.center)
                             Text(row.rightValue)
-                                .font(.system(size: 13))
+                                .font(.system(size: 12))
                                 .foregroundColor(theme.tokens.textPrimaryColor)
                                 .frame(maxWidth: .infinity)
+                                .multilineTextAlignment(.center)
                         }
+                        .padding(.horizontal, 8)
                         .padding(.vertical, 8)
-                        .padding(.horizontal, 10)
                         .background(
-                            (row.highlighted ?? false) ? theme.tokens.primaryColor.opacity(0.12) : Color.clear
+                            (row.highlighted ?? false)
+                                ? theme.tokens.primaryColor.opacity(0.18)
+                                : Color.clear
                         )
-                        Divider()
+                        .cornerRadius(6)
                     }
                 }
+                .padding(.top, 8)
             }
+            .padding(16)
+            .background(cardBackground)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(borderColor, lineWidth: 1)
+            )
+            .cornerRadius(16)
             .padding(.horizontal, Spacing.md.value)
         )
     }
