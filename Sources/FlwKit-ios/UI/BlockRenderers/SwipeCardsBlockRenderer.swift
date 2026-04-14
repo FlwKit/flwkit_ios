@@ -33,66 +33,107 @@ private struct SwipeCardsBlockView: View {
     @State private var agreedCardIDs: [String] = []
 
     var cards: [SwipeCard] { block.cards ?? [] }
+    var activeCard: SwipeCard? {
+        guard currentIndex < cards.count else { return nil }
+        return cards[currentIndex]
+    }
+    var nextCard: SwipeCard? {
+        let index = currentIndex + 1
+        guard index < cards.count else { return nil }
+        return cards[index]
+    }
 
     var body: some View {
-        VStack(spacing: 20) {
+        let borderColor = theme.tokens.textSecondaryColor.opacity(0.40)
+        let cardBackground = theme.tokens.surfaceColor.opacity(0.88)
+
+        VStack(spacing: 0) {
             Text(block.headline ?? "Do any of these sound familiar?")
-                .font(.system(size: 22, weight: .bold))
+                .font(.system(size: 18, weight: .semibold))
                 .multilineTextAlignment(.center)
                 .foregroundColor(theme.tokens.textPrimaryColor)
+                .padding(.bottom, 16)
 
-            ZStack {
-                ForEach(Array(cards.enumerated().reversed()), id: \.element.id) { index, card in
-                    if index >= currentIndex {
-                        cardView(card: card)
-                            .offset(index == currentIndex ? dragOffset : .zero)
-                            .scaleEffect(index == currentIndex ? 1.0 : 0.94)
-                            .rotationEffect(.degrees(index == currentIndex ? Double(dragOffset.width / 24) : 0))
-                            .zIndex(Double(cards.count - index))
-                            .gesture(index == currentIndex ? dragGesture : nil)
-                    }
+            ZStack(alignment: .top) {
+                if let nextCard {
+                    SwipeStackCardView(
+                        text: cardText(nextCard),
+                        textColor: theme.tokens.textSecondaryColor,
+                        backgroundColor: theme.tokens.backgroundColor,
+                        borderColor: borderColor,
+                        horizontalPadding: 16,
+                        verticalPadding: 16,
+                        font: .system(size: 14),
+                        cornerRadius: 16
+                    )
+                    .opacity(0.7)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 12)
+                    .padding(.horizontal, 10)
                 }
+
+                SwipeStackCardView(
+                    text: cardText(activeCard),
+                    textColor: theme.tokens.textPrimaryColor,
+                    backgroundColor: theme.tokens.backgroundColor,
+                    borderColor: theme.tokens.textSecondaryColor.opacity(0.50),
+                    horizontalPadding: 20,
+                    verticalPadding: 20,
+                    font: .system(size: 16, weight: .medium),
+                    cornerRadius: 16
+                )
+                .shadow(color: Color.black.opacity(0.08), radius: 3, x: 0, y: 1)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 3)
+                .offset(dragOffset)
+                .rotationEffect(.degrees(Double(dragOffset.width / 24)))
+                .gesture(dragGesture)
             }
-            .frame(height: 210)
+            .frame(height: 176)
 
-            HStack(spacing: 24) {
-                Button("Not me") {
-                    swipe(agreed: false)
+            HStack {
+                Button(action: { swipe(agreed: false) }) {
+                    Text("← Not me")
+                        .font(.system(size: 12))
+                        .foregroundColor(theme.tokens.textSecondaryColor)
                 }
-                .foregroundColor(theme.tokens.textSecondaryColor)
+                .buttonStyle(.plain)
 
-                Button("That's me →") {
-                    swipe(agreed: true)
+                Spacer()
+
+                Button(action: { swipe(agreed: true) }) {
+                    Text("That's me →")
+                        .font(.system(size: 12))
+                        .foregroundColor(theme.tokens.textSecondaryColor)
                 }
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(theme.tokens.textPrimaryColor)
+                .buttonStyle(.plain)
             }
+            .padding(.top, 12)
         }
+        .padding(16)
+        .background(cardBackground)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(borderColor, lineWidth: 1)
+        )
+        .cornerRadius(16)
         .padding(.horizontal, Spacing.md.value)
     }
 
-    private func cardView(card: SwipeCard) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(card.emoji ?? "🙂")
-                .font(.system(size: 30))
-            Text(card.text)
-                .font(.system(size: 18, weight: .medium))
-                .foregroundColor(theme.tokens.textPrimaryColor)
-                .multilineTextAlignment(.leading)
+    private func cardText(_ card: SwipeCard?) -> String {
+        if let card {
+            let text = "\(card.emoji ?? "") \(card.text)".trimmingCharacters(in: .whitespacesAndNewlines)
+            return text.isEmpty ? "Card text" : text
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .padding(20)
-        .background(theme.tokens.surfaceColor)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(theme.tokens.textSecondaryColor.opacity(0.25), lineWidth: 1)
-        )
-        .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 4)
+        return "😩 I never have time to stay consistent"
     }
 
     private func swipe(agreed: Bool) {
-        guard currentIndex < cards.count else { return }
+        guard currentIndex < cards.count else {
+            onComplete(agreedCardIDs)
+            return
+        }
+
         let card = cards[currentIndex]
         if agreed {
             agreedCardIDs.append(card.id)
@@ -123,5 +164,32 @@ private struct SwipeCardsBlockView: View {
                     }
                 }
             }
+    }
+}
+
+private struct SwipeStackCardView: View {
+    let text: String
+    let textColor: Color
+    let backgroundColor: Color
+    let borderColor: Color
+    let horizontalPadding: CGFloat
+    let verticalPadding: CGFloat
+    let font: Font
+    let cornerRadius: CGFloat
+
+    var body: some View {
+        Text(text)
+            .font(font)
+            .foregroundColor(textColor)
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, verticalPadding)
+            .background(backgroundColor)
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .stroke(borderColor, lineWidth: 1)
+            )
+            .cornerRadius(cornerRadius)
     }
 }
