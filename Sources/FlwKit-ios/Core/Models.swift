@@ -948,6 +948,20 @@ public struct ChoiceOption: Codable {
     public let icon: String? // Legacy support for icon/emoji
     public let emoji: String? // New: emoji support
     public let action: String? // Per-option action: 'next' | 'back' | 'skip' | 'close' | 'submit'
+
+    enum CodingKeys: String, CodingKey {
+        case label
+        case text
+        case title
+        case value
+        case id
+        case key
+        case icon
+        case emoji
+        case action
+        case target
+        case type
+    }
     
     public init(label: String, value: String, icon: String? = nil, emoji: String? = nil, action: String? = nil) {
         self.label = label
@@ -956,6 +970,77 @@ public struct ChoiceOption: Codable {
         self.emoji = emoji
         self.action = action
     }
+
+    public init(from decoder: Decoder) throws {
+        // Support simple string options as a fallback.
+        if let single = try? decoder.singleValueContainer(),
+           let rawString = try? single.decode(String.self) {
+            let trimmed = rawString.trimmingCharacters(in: .whitespacesAndNewlines)
+            let fallback = trimmed.isEmpty ? "Option" : trimmed
+            self.label = fallback
+            self.value = choiceValueSlug(from: fallback)
+            self.icon = nil
+            self.emoji = nil
+            self.action = nil
+            return
+        }
+
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let labelValue = try? container.decodeIfPresent(String.self, forKey: .label)
+        let textValue = try? container.decodeIfPresent(String.self, forKey: .text)
+        let titleValue = try? container.decodeIfPresent(String.self, forKey: .title)
+        let valueAsLabel = try? container.decodeIfPresent(String.self, forKey: .value)
+        let decodedLabel = labelValue ?? textValue ?? titleValue ?? valueAsLabel ?? "Option"
+        let trimmedLabel = decodedLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.label = trimmedLabel.isEmpty ? "Option" : trimmedLabel
+
+        let valueValue = try? container.decodeIfPresent(String.self, forKey: .value)
+        let idValue = try? container.decodeIfPresent(String.self, forKey: .id)
+        let keyValue = try? container.decodeIfPresent(String.self, forKey: .key)
+        let decodedValue = valueValue ?? idValue ?? keyValue
+        if let decodedValue {
+            let trimmed = decodedValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            self.value = trimmed.isEmpty ? choiceValueSlug(from: self.label) : trimmed
+        } else {
+            self.value = choiceValueSlug(from: self.label)
+        }
+
+        self.icon = try? container.decodeIfPresent(String.self, forKey: .icon)
+        self.emoji = try? container.decodeIfPresent(String.self, forKey: .emoji)
+
+        if let directAction = try? container.decodeIfPresent(String.self, forKey: .action) {
+            let trimmed = directAction.trimmingCharacters(in: .whitespacesAndNewlines)
+            self.action = trimmed.isEmpty ? nil : trimmed
+        } else if let actionObject = try? container.decodeIfPresent([String: String].self, forKey: .action) {
+            let nestedAction = actionObject["action"] ?? actionObject["type"]
+            let trimmed = nestedAction?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            self.action = trimmed.isEmpty ? nil : trimmed
+        } else if let actionContainer = try? container.nestedContainer(keyedBy: CodingKeys.self, forKey: .action) {
+            let nestedAction =
+                (try? actionContainer.decodeIfPresent(String.self, forKey: .action)) ??
+                (try? actionContainer.decodeIfPresent(String.self, forKey: .type))
+            let trimmed = nestedAction?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            self.action = trimmed.isEmpty ? nil : trimmed
+        } else {
+            self.action = nil
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(label, forKey: .label)
+        try container.encode(value, forKey: .value)
+        try container.encodeIfPresent(icon, forKey: .icon)
+        try container.encodeIfPresent(emoji, forKey: .emoji)
+        try container.encodeIfPresent(action, forKey: .action)
+    }
+}
+
+private func choiceValueSlug(from label: String) -> String {
+    let lowered = label.lowercased()
+    let cleaned = lowered.replacingOccurrences(of: "[^a-z0-9]+", with: "_", options: .regularExpression)
+    let trimmed = cleaned.trimmingCharacters(in: CharacterSet(charactersIn: "_"))
+    return trimmed.isEmpty ? "option" : trimmed
 }
 
 public struct BenefitsListItem: Codable {
