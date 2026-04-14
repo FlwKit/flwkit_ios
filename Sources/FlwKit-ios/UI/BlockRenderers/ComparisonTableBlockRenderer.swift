@@ -11,8 +11,7 @@ struct ComparisonTableBlockRenderer: BlockRenderer {
         let rows = Array((block.rows ?? []).prefix(4))
         let borderColor = theme.tokens.textSecondaryColor.opacity(0.40)
         let cardBackground = theme.tokens.surfaceColor.opacity(0.88)
-
-        AnyView(
+        return AnyView(
             VStack(spacing: 0) {
                 Text(block.headline ?? "See the difference")
                     .font(.system(size: 18, weight: .semibold))
