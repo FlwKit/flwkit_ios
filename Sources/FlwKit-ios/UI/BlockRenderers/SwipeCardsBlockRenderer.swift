@@ -49,9 +49,10 @@ private struct SwipeCardsBlockView: View {
 
         VStack(spacing: 0) {
             Text(block.headline ?? "Do any of these sound familiar?")
-                .font(.system(size: 18, weight: .semibold))
-                .multilineTextAlignment(.center)
+                .font(.system(size: 20, weight: .semibold))
+                .multilineTextAlignment(.leading)
                 .foregroundColor(theme.tokens.textPrimaryColor)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.bottom, 16)
 
             ZStack(alignment: .top) {
@@ -89,13 +90,13 @@ private struct SwipeCardsBlockView: View {
                 .rotationEffect(.degrees(Double(dragOffset.width / 24)))
                 .gesture(dragGesture)
             }
-            .frame(height: 176)
+            .frame(height: 178)
 
             HStack {
                 Button(action: { swipe(agreed: false) }) {
                     Text("← Not me")
-                        .font(.system(size: 12))
-                        .foregroundColor(theme.tokens.textSecondaryColor)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(theme.tokens.textSecondaryColor.opacity(0.95))
                 }
                 .buttonStyle(.plain)
 
@@ -103,12 +104,12 @@ private struct SwipeCardsBlockView: View {
 
                 Button(action: { swipe(agreed: true) }) {
                     Text("That's me →")
-                        .font(.system(size: 12))
-                        .foregroundColor(theme.tokens.textSecondaryColor)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(theme.tokens.textSecondaryColor.opacity(0.95))
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.top, 12)
+            .padding(.top, 14)
         }
         .padding(16)
         .background(cardBackground)
