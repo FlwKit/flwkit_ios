@@ -33,7 +33,6 @@ private struct PermissionBlockView: View {
     var body: some View {
         let tokens = theme.tokens
         let borderColor = tokens.textSecondaryColor.opacity(0.60)
-        let badgeBorderColor = tokens.textSecondaryColor.opacity(0.50)
         let secondaryBorderColor = tokens.textSecondaryColor.opacity(0.55)
         let cardBackground = tokens.surfaceColor.opacity(0.80)
 
@@ -43,20 +42,8 @@ private struct PermissionBlockView: View {
                     .frame(width: 44, height: 44)
                     .background(tokens.primaryColor.opacity(0.20))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                Spacer()
-
-                Text("NATIVE PROMPT")
-                    .font(.system(size: 10, weight: .semibold))
-                    .tracking(0.5)
-                    .foregroundColor(tokens.textSecondaryColor)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(badgeBorderColor, lineWidth: 1)
-                    )
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.bottom, 12)
 
             VStack(alignment: .leading, spacing: 0) {
