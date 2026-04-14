@@ -32,58 +32,60 @@ private struct PermissionBlockView: View {
 
     var body: some View {
         let tokens = theme.tokens
-        let borderColor = tokens.textSecondaryColor.opacity(0.35)
-        let cardBackground = tokens.surfaceColor.opacity(0.75)
+        let borderColor = tokens.textSecondaryColor.opacity(0.60)
+        let badgeBorderColor = tokens.textSecondaryColor.opacity(0.50)
+        let secondaryBorderColor = tokens.textSecondaryColor.opacity(0.55)
+        let cardBackground = tokens.surfaceColor.opacity(0.80)
 
         VStack(spacing: 0) {
             HStack(alignment: .center) {
                 IconView(iconName: permissionIconName(), color: tokens.primaryColor, size: 22)
-                    .frame(width: 42, height: 42)
-                    .background(tokens.primaryColor.opacity(0.16))
+                    .frame(width: 44, height: 44)
+                    .background(tokens.primaryColor.opacity(0.20))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 Spacer()
 
-                Text("Native Prompt")
-                    .font(.system(size: 10, weight: .bold))
+                Text("NATIVE PROMPT")
+                    .font(.system(size: 10, weight: .semibold))
                     .tracking(0.5)
-                    .textCase(.uppercase)
                     .foregroundColor(tokens.textSecondaryColor)
                     .padding(.horizontal, 8)
-                    .padding(.vertical, 5)
+                    .padding(.vertical, 4)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 7)
-                            .stroke(borderColor, lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(badgeBorderColor, lineWidth: 1)
                     )
             }
+            .padding(.bottom, 12)
 
-            VStack(alignment: .leading, spacing: 10) {
-                Text(block.headline ?? "Allow permission")
-                    .font(.system(size: 18, weight: .bold))
+            VStack(alignment: .leading, spacing: 0) {
+                Text(block.headline ?? "Permission headline")
+                    .font(.system(size: 18, weight: .semibold))
                     .multilineTextAlignment(.leading)
                     .foregroundColor(tokens.textPrimaryColor)
                     .fixedSize(horizontal: false, vertical: true)
+                    .padding(.bottom, 8)
 
-                Text(block.permissionDescription ?? "This helps personalize your experience.")
-                    .font(.system(size: 16))
+                Text(block.permissionDescription ?? "Permission rationale appears here.")
+                    .font(.system(size: 14))
                     .multilineTextAlignment(.leading)
                     .foregroundColor(tokens.textSecondaryColor)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, 14)
 
-            VStack(spacing: 10) {
+            VStack(spacing: 8) {
                 Button(action: {
                     requestPermissionThenAdvance()
                 }) {
-                    Text(block.ctaLabel ?? "Continue")
-                        .font(.system(size: 16, weight: .semibold))
+                    Text(block.ctaLabel ?? "Enable →")
+                        .font(.system(size: 14, weight: .semibold))
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                        .padding(.vertical, 10)
                         .background(tokens.primaryColor)
                         .foregroundColor(Color(hex: "#111315"))
-                        .cornerRadius(11)
+                        .cornerRadius(12)
                 }
                 .disabled(isRequesting)
 
@@ -91,27 +93,27 @@ private struct PermissionBlockView: View {
                     advance(with: block.onDenied)
                 }) {
                     Text(block.skipLabel ?? "Not now")
-                        .font(.system(size: 16))
+                        .font(.system(size: 14))
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 11)
+                        .padding(.vertical, 10)
                         .foregroundColor(tokens.textSecondaryColor)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 11)
-                                .stroke(borderColor, lineWidth: 1)
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(secondaryBorderColor, lineWidth: 1)
                         )
                 }
                 .disabled(isRequesting)
             }
-            .padding(.top, 14)
+            .padding(.top, 16)
         }
-        .padding(14)
+        .padding(16)
         .background(cardBackground)
         .overlay(
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: 16)
                 .stroke(style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
                 .foregroundColor(borderColor)
         )
-        .cornerRadius(14)
+        .cornerRadius(16)
         .padding(.horizontal, Spacing.md.value)
         .padding(.vertical, 8)
     }
