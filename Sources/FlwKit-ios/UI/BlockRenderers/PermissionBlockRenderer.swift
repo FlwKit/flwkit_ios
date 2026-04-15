@@ -196,8 +196,10 @@ private struct PermissionBlockView: View {
         let readTypes: Set<HKObjectType> = [steps, energy]
         let store = HKHealthStore()
         return await withCheckedContinuation { continuation in
-            store.requestAuthorization(toShare: [], read: readTypes) { success, _ in
-                continuation.resume(returning: success)
+            DispatchQueue.main.async {
+                store.requestAuthorization(toShare: [], read: readTypes) { success, _ in
+                    continuation.resume(returning: success)
+                }
             }
         }
         #else
