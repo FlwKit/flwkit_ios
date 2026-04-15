@@ -74,8 +74,8 @@ enum IconMapper {
             "CreditCard": "creditcard.fill",
             "ShoppingCart": "cart.fill",
             "Tag": "tag.fill",
-            "TrendingUp": "arrow.trending.up",
-            "chart": "arrow.trending.up",
+            "TrendingUp": "chart.line.uptrend.xyaxis",
+            "chart": "chart.line.uptrend.xyaxis",
             
             // Lifestyle
             "Coffee": "cup.and.saucer.fill",
