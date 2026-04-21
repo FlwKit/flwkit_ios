@@ -281,7 +281,9 @@ public struct Block: Codable {
     
     // Choice block
     public let options: [ChoiceOption]?
-    public let multiple: Bool?
+    public let multiple: Bool?   // Legacy field — prefer mode
+    public let mode: String?     // "single" | "multi" (preferred over multiple)
+    public let minSelections: Int? // Minimum required selections (multi mode only)
     // Note: Typography, background, size, and border properties are shared with text input blocks (declared above)
     // Note: For choice blocks, height uses choiceHeight property
     public let choiceHeight: Double? // Height in pixels for choice options
@@ -401,7 +403,7 @@ public struct Block: Codable {
         case borderOpacity = "borderOpacity"
         case borderWidth = "borderWidth"
         // Note: height is already declared above and used for media, spacer, text_input, and cta blocks
-        case options, multiple, placeholder
+        case options, multiple, mode, minSelections, placeholder
         case inputType = "input_type"
         case required, min, max, step
         case defaultValue = "default_value"
@@ -574,6 +576,12 @@ public struct Block: Codable {
             options = nil
         }
         multiple = decodeBool(.multiple)
+        mode = decodeString(.mode)
+        minSelections = {
+            if let v = try? container.decodeIfPresent(Int.self, forKey: .minSelections) { return v }
+            if let v = try? propertiesContainer?.decodeIfPresent(Int.self, forKey: .minSelections) { return v }
+            return nil
+        }()
         placeholder = decodeString(.placeholder)
         inputType = decodeString(.inputType)
         required = decodeBool(.required)
@@ -777,6 +785,8 @@ public struct Block: Codable {
         try container.encodeIfPresent(borderRadius, forKey: .borderRadius)
         try container.encodeIfPresent(options, forKey: .options)
         try container.encodeIfPresent(multiple, forKey: .multiple)
+        try container.encodeIfPresent(mode, forKey: .mode)
+        try container.encodeIfPresent(minSelections, forKey: .minSelections)
         try container.encodeIfPresent(placeholder, forKey: .placeholder)
         try container.encodeIfPresent(inputType, forKey: .inputType)
         try container.encodeIfPresent(required, forKey: .required)
