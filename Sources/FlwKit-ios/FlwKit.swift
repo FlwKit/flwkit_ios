@@ -30,6 +30,7 @@ public struct FlwKitCompletionResult {
 public struct FlwKit {
     private static let apiClient = APIClient.shared
     private static let analytics = Analytics.shared
+    static let sdkVersion = "1.0.0"
     
     /// Configure FlwKit with your API key.
     /// Call this once during app initialization (in AppDelegate or @main App struct).
@@ -41,7 +42,21 @@ public struct FlwKit {
     public static func configure(apiKey: String, userId: String? = nil, baseURL: String? = nil) {
         apiClient.configure(baseURL: baseURL, apiKey: apiKey)
         analytics.configure(baseURL: baseURL, apiKey: apiKey, userId: userId)
+        reportCapabilities()
         prefetchFlow(userId: userId)
+    }
+
+    private static func reportCapabilities() {
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+        let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
+        Task {
+            try? await apiClient.reportCapabilities(
+                appVersion: appVersion,
+                buildNumber: buildNumber,
+                sdkVersion: sdkVersion,
+                registeredBlockTypes: BlockRegistry.allTypes
+            )
+        }
     }
 
     private static func prefetchFlow(userId: String?) {
@@ -206,4 +221,3 @@ public struct FlwKitFlowView: View {
         }
     }
 }
-

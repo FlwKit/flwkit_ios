@@ -26,6 +26,31 @@ class APIClient {
             self.baseURL = baseURL
         }
     }
+
+    func reportCapabilities(
+        appVersion: String,
+        buildNumber: String,
+        sdkVersion: String,
+        registeredBlockTypes: [String]
+    ) async throws {
+        guard let apiKey = apiKey else { return }
+        guard let url = URL(string: "\(baseURL)/sdk/capabilities") else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(FlwKit.assignmentID, forHTTPHeaderField: "X-FlwKit-Device-ID")
+
+        let body: [String: Any] = [
+            "appVersion": appVersion,
+            "buildNumber": buildNumber,
+            "sdkVersion": sdkVersion,
+            "registeredBlockTypes": registeredBlockTypes,
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
+        _ = try? await session.data(for: request)
+    }
     
     func fetchFlow(userId: String? = nil, completion: @escaping (Result<Flow, Error>) -> Void) {
         guard let apiKey = apiKey else {

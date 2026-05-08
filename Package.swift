@@ -21,6 +21,9 @@ let package = Package(
         .target(
             name: "FlwKit-ios",
             dependencies: [],
+            resources: [
+                .process("PrivacyInfo.xcprivacy")
+            ],
             linkerSettings: [
                 .linkedFramework("UserNotifications"),
                 .linkedFramework("AVFoundation"),

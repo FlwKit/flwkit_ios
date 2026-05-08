@@ -65,6 +65,40 @@ class BlockRendererRegistry {
     }
 }
 
+enum BlockRegistry {
+    // Single source of truth for block types compiled into this SDK build.
+    static let allTypes: [String] = [
+        "header",
+        "description",
+        "personalization",
+        "media",
+        "image",
+        "video",
+        "media_block",
+        "image_block",
+        "video_block",
+        "choice",
+        "text_input",
+        "slider",
+        "cta",
+        "spacer",
+        "benefits_list",
+        "testimonial",
+        "footer",
+        "progress_bar",
+        "notification_permission",
+        "health_permission",
+        "tracking_permission",
+        "camera_permission",
+        "location_permission",
+        "microphone_permission",
+        "photo_library_permission",
+        "processing_animation",
+        "comparison_table",
+        "swipe_cards",
+    ]
+}
+
 // MARK: - Unsupported Block View
 
 struct UnsupportedBlockView: View {
