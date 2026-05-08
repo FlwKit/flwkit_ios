@@ -3,6 +3,7 @@ import UserNotifications
 import AVFoundation
 import CoreLocation
 import Photos
+import UIKit
 #if canImport(HealthKit)
 import HealthKit
 #endif
@@ -141,6 +142,7 @@ private struct PermissionBlockView: View {
     }
 
     private func requestPermission() async -> Bool {
+        await waitUntilAppIsActiveIfNeeded()
         switch block.type {
         case "notification_permission":
             return await requestNotificationPermission()
@@ -172,9 +174,14 @@ private struct PermissionBlockView: View {
 
     private func hasPlistUsageDescription(_ key: String) -> Bool {
         guard let value = Bundle.main.object(forInfoDictionaryKey: key) as? String else {
+            logPermissionConfigurationIssue("Missing Info.plist key: \(key)")
             return false
         }
-        return !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let hasValue = !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        if !hasValue {
+            logPermissionConfigurationIssue("Info.plist key is empty: \(key)")
+        }
+        return hasValue
     }
 
     private func requestNotificationPermission() async -> Bool {
@@ -197,7 +204,10 @@ private struct PermissionBlockView: View {
         let store = HKHealthStore()
         return await withCheckedContinuation { continuation in
             DispatchQueue.main.async {
-                store.requestAuthorization(toShare: [], read: readTypes) { success, _ in
+                store.requestAuthorization(toShare: [], read: readTypes) { success, error in
+                    if let error {
+                        logPermissionConfigurationIssue("HealthKit authorization error: \(error.localizedDescription). Ensure HealthKit capability is enabled on the app target.")
+                    }
                     continuation.resume(returning: success)
                 }
             }
@@ -210,13 +220,22 @@ private struct PermissionBlockView: View {
     private func requestTrackingPermission() async -> Bool {
         #if canImport(AppTrackingTransparency)
         guard hasPlistUsageDescription("NSUserTrackingUsageDescription") else { return false }
-        if #available(iOS 14.5, *) {
+        if #available(iOS 14.0, *) {
             return await withCheckedContinuation { continuation in
-                ATTrackingManager.requestTrackingAuthorization { status in
-                    continuation.resume(returning: status == .authorized)
+                DispatchQueue.main.async {
+                    let existingStatus = ATTrackingManager.trackingAuthorizationStatus
+                    if existingStatus != .notDetermined {
+                        continuation.resume(returning: existingStatus == .authorized)
+                        return
+                    }
+
+                    ATTrackingManager.requestTrackingAuthorization { status in
+                        continuation.resume(returning: status == .authorized)
+                    }
                 }
             }
         }
+        logPermissionConfigurationIssue("Tracking permission requires iOS 14.0 or later.")
         return false
         #else
         return false
@@ -226,8 +245,10 @@ private struct PermissionBlockView: View {
     private func requestCameraPermission() async -> Bool {
         guard hasPlistUsageDescription("NSCameraUsageDescription") else { return false }
         return await withCheckedContinuation { continuation in
-            AVCaptureDevice.requestAccess(for: .video) { granted in
-                continuation.resume(returning: granted)
+            DispatchQueue.main.async {
+                AVCaptureDevice.requestAccess(for: .video) { granted in
+                    continuation.resume(returning: granted)
+                }
             }
         }
     }
@@ -240,8 +261,10 @@ private struct PermissionBlockView: View {
     private func requestMicrophonePermission() async -> Bool {
         guard hasPlistUsageDescription("NSMicrophoneUsageDescription") else { return false }
         return await withCheckedContinuation { continuation in
-            AVAudioSession.sharedInstance().requestRecordPermission { granted in
-                continuation.resume(returning: granted)
+            DispatchQueue.main.async {
+                AVAudioSession.sharedInstance().requestRecordPermission { granted in
+                    continuation.resume(returning: granted)
+                }
             }
         }
     }
@@ -249,10 +272,36 @@ private struct PermissionBlockView: View {
     private func requestPhotoLibraryPermission() async -> Bool {
         guard hasPlistUsageDescription("NSPhotoLibraryUsageDescription") else { return false }
         return await withCheckedContinuation { continuation in
-            PHPhotoLibrary.requestAuthorization(for: .readWrite) { status in
-                continuation.resume(returning: status == .authorized || status == .limited)
+            DispatchQueue.main.async {
+                PHPhotoLibrary.requestAuthorization(for: .readWrite) { status in
+                    continuation.resume(returning: status == .authorized || status == .limited)
+                }
             }
         }
+    }
+
+    private func waitUntilAppIsActiveIfNeeded() async {
+        if await MainActor.run(body: { UIApplication.shared.applicationState == .active }) {
+            return
+        }
+
+        await withCheckedContinuation { continuation in
+            var observer: NSObjectProtocol?
+            observer = NotificationCenter.default.addObserver(
+                forName: UIApplication.didBecomeActiveNotification,
+                object: nil,
+                queue: .main
+            ) { _ in
+                if let observer {
+                    NotificationCenter.default.removeObserver(observer)
+                }
+                continuation.resume()
+            }
+        }
+    }
+
+    private func logPermissionConfigurationIssue(_ message: String) {
+        print("[FlwKit Permission] \(message)")
     }
 }
 
@@ -272,7 +321,9 @@ private final class LocationPermissionRequester: NSObject, ObservableObject, CLL
         }
         return await withCheckedContinuation { continuation in
             self.continuation = continuation
-            manager.requestWhenInUseAuthorization()
+            DispatchQueue.main.async {
+                self.manager.requestWhenInUseAuthorization()
+            }
         }
     }
 
